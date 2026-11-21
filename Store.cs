@@ -6,16 +6,24 @@ namespace PromptAdvisor;
 
 public sealed class PromptRow
 {
-    public long Id;
-    public string Source = "", Session = "", Project = "", Text = "", CreatedAt = "";
-    public long InTok, OutTok, CacheTok;
-    public int SegTurns, Fail;
-    public double Score;
-    public int Label;            // 0=없음, 1=👍, -1=👎 (수동 보정이 자동 라벨보다 우선)
-    public string AutoLabel = ""; // good / bad / ""
-    public float[]? Embedding;
-    public bool Favorite;
-    public bool Repro;           // 재현 세트에 넣은 사례 (검증 탭)
+    // WPF 바인딩(이력 표)은 필드가 아니라 속성만 읽으므로 모두 속성으로 둔다
+    public long Id { get; set; }
+    public string Source { get; set; } = "";
+    public string Session { get; set; } = "";
+    public string Project { get; set; } = "";
+    public string Text { get; set; } = "";
+    public string CreatedAt { get; set; } = "";
+    public long InTok { get; set; }
+    public long OutTok { get; set; }
+    public long CacheTok { get; set; }
+    public int SegTurns { get; set; }
+    public int Fail { get; set; }
+    public double Score { get; set; }
+    public int Label { get; set; }            // 0=없음, 1=최적, -1=최악 (수동 보정이 자동 라벨보다 우선)
+    public string AutoLabel { get; set; } = ""; // good / bad / ""
+    public float[]? Embedding { get; set; }
+    public bool Favorite { get; set; }
+    public bool Repro { get; set; }           // 재현 세트에 넣은 사례 (검증 탭)
     public long TotalTok => InTok + OutTok;
     public bool IsGood => Label == 1 || (Label == 0 && AutoLabel == "good");
     public bool IsBad => Label == -1 || (Label == 0 && AutoLabel == "bad");

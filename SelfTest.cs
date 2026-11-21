@@ -344,6 +344,9 @@ public static class SelfTest
             return Advisor.WriteKnowledgeExport(Path.Combine(tmp, "knowledge-out"), st, new List<string>(), "", DateTime.Now).prompts > 0;
         });
 
+        Try("grid-binds-properties", () => new[] { "Favorite", "Repro", "EffectiveLabel", "DisplaySource", "DisplayProject", "DisplayTime", "Preview", "InTok", "OutTok", "SegTurns", "Fail", "Score" }
+            .All(n => typeof(PromptRow).GetProperty(n) != null)); // 이력 표 바인딩은 필드를 읽지 못한다
+
         // ---- 한/영 · 표시 경로 · crash.log ----
         Try("xaml-en-coverage", () =>
         {
