@@ -42,7 +42,7 @@ public static class SelfTest
             {
                 new() { Source = "claude", Text = "테스트 프롬프트입니다 길게 써봅니다", InTok = 1000, OutTok = 500, Fail = 1, CreatedAt = DateTime.Now.ToString("s") },
             }, DateTime.Now);
-            return report.Contains("최근 7일") && report.Contains("TOP 5");
+            return report.Contains("최근 7일") && report.Contains("TOP 5") && !report.Contains("📊");
         });
 
         // ---- 영어 입력 ----

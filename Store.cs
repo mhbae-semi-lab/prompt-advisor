@@ -17,13 +17,16 @@ public sealed class PromptRow
     public bool Favorite;
     public bool Repro;           // 재현 세트에 넣은 사례 (검증 탭)
     public long TotalTok => InTok + OutTok;
-    public string EffectiveLabel => Label == 1 ? "👍 최적" : Label == -1 ? "👎 최악" : AutoLabel == "good" ? "최적(자동)" : AutoLabel == "bad" ? "최악(자동)" : "-";
+    public bool IsGood => Label == 1 || (Label == 0 && AutoLabel == "good");
+    public bool IsBad => Label == -1 || (Label == 0 && AutoLabel == "bad");
+    public string EffectiveLabel => Label == 1 ? L.T("최적", "Best") : Label == -1 ? L.T("최악", "Worst")
+        : AutoLabel == "good" ? L.T("최적(자동)", "Best (auto)") : AutoLabel == "bad" ? L.T("최악(자동)", "Worst (auto)") : "-";
     public string DisplayProject => string.IsNullOrWhiteSpace(Project) ? "—" : Project;
     public string Preview => Text.Length > 90 ? Text[..90].Replace("\n", " ") + "…" : Text.Replace("\n", " ");
     public string DisplaySource => Source switch
     {
         "claude" => "Claude Code", "cursor" => "Cursor", "antigravity" => "Antigravity",
-        "claude.ai" => "claude.ai", "genspark" => "Genspark", "paste" => "붙여넣기", _ => Source,
+        "claude.ai" => "claude.ai", "genspark" => "Genspark", "paste" => L.T("붙여넣기", "Pasted"), "csv" => "CSV", _ => Source,
     };
     public string DisplayTime
     {

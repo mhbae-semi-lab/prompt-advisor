@@ -20,7 +20,7 @@ public static class Updater
     }
 
     /// <summary>업데이트 확인. apply=true 면 내려받아 적용하고 재시작한다. 결과는 사람이 읽을 한 줄.</summary>
-    public static async Task<string> CheckAsync(bool apply, string[]? restartArgs)
+    public static async Task<string> CheckAsync(bool apply, string[]? restartArgs, Action<string>? beforeApply = null)
     {
         try
         {
@@ -32,6 +32,7 @@ public static class Updater
             var next = info.TargetFullRelease.Version;
             if (!apply) return L.T($"새 버전 v{next} 이 있습니다 (현재 v{mgr.CurrentVersion}).", $"Version v{next} is available (current v{mgr.CurrentVersion}).");
             await mgr.DownloadUpdatesAsync(info);
+            beforeApply?.Invoke($"applying v{next} (from v{mgr.CurrentVersion})");
             mgr.ApplyUpdatesAndRestart(info.TargetFullRelease, restartArgs);
             return L.T($"v{next} 적용 후 재시작합니다.", $"Applying v{next} and restarting.");
         }

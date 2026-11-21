@@ -313,23 +313,24 @@ public static partial class Advisor
             var words = Regex.Matches(prompt.ToLowerInvariant(), @"[a-z0-9]{2,}|[가-힣]{2,}")
                 .Select(m => m.Value).Distinct().ToList();
             var fileCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            foreach (var row in projectHistory.Where(r => r.EffectiveLabel == "최적" || r.Fail == 0))
+            foreach (var row in projectHistory.Where(r => r.IsGood || r.Fail == 0))
             {
                 bool relevant = words.Count == 0 || words.Any(w => row.Text.Contains(w, StringComparison.OrdinalIgnoreCase));
                 if (!relevant) continue;
                 foreach (Match m in FilePathRegex().Matches(row.Text))
                 {
                     var fn = Path.GetFileName(m.Value);
-                    fileCounts[fn] = fileCounts.GetValueOrDefault(fn) + (row.EffectiveLabel == "최적" ? 2 : 1);
+                    fileCounts[fn] = fileCounts.GetValueOrDefault(fn) + (row.IsGood ? 2 : 1);
                 }
             }
             foreach (var (fn, cnt) in fileCounts.OrderByDescending(kv => kv.Value).Take(3))
             {
                 if (!ctx.CandidateFiles.Any(c => Path.GetFileName(c.File).Equals(fn, StringComparison.OrdinalIgnoreCase)))
-                    ctx.CandidateFiles.Add((fn, $"과거 이력 빈출 파일 ({cnt}회)", ctx.CandidateFiles.Count(c => c.Selected) < 3));
+                    ctx.CandidateFiles.Add((fn, L.T($"과거 이력 빈출 파일 ({cnt}회)", $"often in good past prompts ({cnt}×)"), ctx.CandidateFiles.Count(c => c.Selected) < 3));
             }
 
-            ctx.WhyInferred += $" · DB 이력 {total}건(실패율 {ctx.HistoricalFailRate * 100:F0}%, 평균 {avgTurns:F1}턴)";
+            ctx.WhyInferred += L.T($" · DB 이력 {total}건(정정 비율 {ctx.HistoricalFailRate * 100:F0}%, 평균 {avgTurns:F1}턴)",
+                                   $" · {total} records in history ({ctx.HistoricalFailRate * 100:F0}% needed corrections, avg {avgTurns:F1} turns)");
         }
         return ctx;
     }
@@ -397,11 +398,11 @@ public static partial class Advisor
         }
 
         foreach (Match m in FilePathRegex().Matches(prompt))
-            AddCandidate(m.Value, "프롬프트에 직접 명시", true);
+            AddCandidate(m.Value, L.T("프롬프트에 직접 명시", "named in the prompt"), true);
 
         foreach (var prev in ctx.RecentPrompts)
             foreach (Match m in FilePathRegex().Matches(prev))
-                AddCandidate(m.Value, "직전 대화에서 언급", ctx.CandidateFiles.Count < 3);
+                AddCandidate(m.Value, L.T("직전 대화에서 언급", "mentioned just before"), ctx.CandidateFiles.Count < 3);
 
         if (projFiles.Count > 0)
         {
@@ -424,7 +425,7 @@ public static partial class Advisor
                 if (stem.Length >= 3 && combinedText.Contains(stem))
                 {
                     score += 5;
-                    reasons.Add($"파일명 '{stem}' 일치");
+                    reasons.Add(L.T($"파일명 '{stem}' 일치", $"file name '{stem}' matches"));
                 }
                 if (roles.TryGetValue(fileName, out var roleDesc))
                 {
@@ -432,7 +433,7 @@ public static partial class Advisor
                     if (roleHits > 0)
                     {
                         score += roleHits * 2;
-                        reasons.Add($"역할({ (roleDesc.Length > 28 ? roleDesc[..28] + "…" : roleDesc) }) 매칭");
+                        reasons.Add(L.T($"역할({(roleDesc.Length > 28 ? roleDesc[..28] + "…" : roleDesc)}) 매칭", $"role ({(roleDesc.Length > 28 ? roleDesc[..28] + "…" : roleDesc)}) matches"));
                     }
                 }
                 if (score > 0)
@@ -453,21 +454,21 @@ public static partial class Advisor
                 .Take(3))
             {
                 bool autoPick = ctx.CandidateFiles.Count(c => c.Selected) == 0 && ctx.IsFollowUp;
-                AddCandidate(recentFile.RelPath, "최근 수정 파일", autoPick);
+                AddCandidate(recentFile.RelPath, L.T("최근 수정 파일", "recently changed"), autoPick);
             }
         }
 
         // 5) 추론 근거 요약
         var whyParts = new List<string>();
         if (!string.IsNullOrEmpty(ctx.ProjectName))
-            whyParts.Add($"프로젝트 '{ctx.ProjectName}'" + (projFiles.Count > 0 ? $" (파일 {projFiles.Count}개 스캔)" : ""));
+            whyParts.Add(L.T($"프로젝트 '{ctx.ProjectName}'", $"project '{ctx.ProjectName}'") + (projFiles.Count > 0 ? L.T($" (파일 {projFiles.Count}개 스캔)", $" ({projFiles.Count} files scanned)") : ""));
         if (ctx.RecentPrompts.Count > 0)
-            whyParts.Add($"직전 대화 {ctx.RecentPrompts.Count}건 연결" + (ctx.IsFollowUp ? " (후속 지시 감지)" : ""));
+            whyParts.Add(L.T($"직전 대화 {ctx.RecentPrompts.Count}건 연결", $"{ctx.RecentPrompts.Count} recent prompts linked") + (ctx.IsFollowUp ? L.T(" (후속 지시 감지)", " (follow-up detected)") : ""));
         if (ctx.SelectedFiles.Count > 0)
-            whyParts.Add($"대상 파일 {ctx.SelectedFiles.Count}개 자동 선택");
+            whyParts.Add(L.T($"대상 파일 {ctx.SelectedFiles.Count}개 자동 선택", $"{ctx.SelectedFiles.Count} target files picked"));
         ctx.WhyInferred = whyParts.Count > 0
             ? string.Join(" · ", whyParts)
-            : "단일 프롬프트 기준 (프로젝트 폴더를 지정하면 파일·문서 맥락이 자동 연동됩니다)";
+            : L.T("단일 프롬프트 기준 (프로젝트 폴더를 지정하면 파일·문서 맥락이 자동 연동됩니다)", "Prompt only (choose a project folder to add file and doc context)");
 
         return ctx;
     }
@@ -754,12 +755,12 @@ public static partial class Advisor
             bool primary = m.Strengths.Contains(task);
             bool secondary = task == "chat" && m.Strengths.Contains("summary")
                              || m.Strengths.Contains("chat") || m.Strengths.Contains("analysis");
-            string fit = primary ? "높음" : secondary ? "중간" : "낮음";
+            int fitScore = primary ? 2 : secondary ? 1 : 0;
+            string fit = fitScore == 2 ? L.T("높음", "high") : fitScore == 1 ? L.T("중간", "medium") : L.T("낮음", "low");
             double effFactor = modelTaskRows == null ? m.OutputFactor : ModelTaskFactor(modelTaskRows, m.Name, task, m.OutputFactor);
             long mOut = (long)(estOut * effFactor);
             long total = estIn + mOut;
             double cost = (estIn * m.InputPerM + mOut * m.OutputPerM) / 1_000_000.0;
-            int fitScore = fit == "높음" ? 2 : fit == "중간" ? 1 : 0;
             return (m, fit, fitScore, total, mOut, cost);
         }).ToList();
 
@@ -777,10 +778,10 @@ public static partial class Advisor
         {
             bool pinned = !string.IsNullOrEmpty(pinnedName) && x.m.Name == pinnedName;
             string reason = pinned
-                ? $"사용자 지정 모델 — {x.m.Note}"
-                : x.fit == "높음" ? $"작업 유형({TaskLabel(task)}) 강점 일치 — {x.m.Note}"
-                : x.fit == "중간" ? $"범용으로 무난 — {x.m.Note}"
-                : $"대안 (이 작업은 강점 아님) — {x.m.Note}";
+                ? L.T("사용자 지정 모델 — ", "pinned by you — ") + x.m.Note
+                : x.fitScore == 2 ? L.T($"작업 유형({TaskLabel(task)}) 강점 일치 — ", $"strong at {TaskLabel(task)} — ") + x.m.Note
+                : x.fitScore == 1 ? L.T("범용으로 무난 — ", "good general choice — ") + x.m.Note
+                : L.T("대안 (이 작업은 강점 아님) — ", "alternative (not its strength) — ") + x.m.Note;
             result.Add(new ModelRank(x.m, result.Count + 1, x.fit, x.total, x.mOut, x.cost, reason, pinned));
         }
         return result;
@@ -1028,28 +1029,27 @@ public static partial class Advisor
         var large = files.Where(f => f.Bytes > 2_000_000).OrderByDescending(f => f.Bytes).ToList();
         long estTokens = files.Count * 1100L;
 
-        sb.AppendLine("[1/4] 폴더 스캔");
-        sb.AppendLine($"  대상: {folder}");
-        sb.AppendLine($"  이미지 {files.Count}장 발견 — {string.Join(", ", files.GroupBy(f => f.Ext).OrderByDescending(g => g.Count()).Select(g => $"{g.Key} {g.Count()}"))}");
-        sb.AppendLine($"  총 용량 {totalBytes / 1_000_000.0:F1}MB (평균 {files.Average(f => f.Bytes) / 1000.0:F0}KB/장)");
-        sb.AppendLine("[2/4] 첨부 복사");
-        sb.AppendLine($"  데이터 폴더 attachments에 {copied}장 복사 완료 (원본 무수정)");
-        sb.AppendLine("[3/4] 토큰 추정 (장당 ~1,100 tok 근사)");
-        sb.AppendLine($"  전체 예상 ~{estTokens:N0} tok · 큰 이미지(2MB 초과) {large.Count}장");
+        sb.AppendLine(L.T("[1/4] 폴더 스캔", "[1/4] Scan folder"));
+        sb.AppendLine(L.T($"  대상: {folder}", $"  Folder: {folder}"));
+        sb.AppendLine(L.T($"  이미지 {files.Count}장 — ", $"  {files.Count} images — ") + string.Join(", ", files.GroupBy(f => f.Ext).OrderByDescending(g => g.Count()).Select(g => $"{g.Key} {g.Count()}")));
+        sb.AppendLine(L.T($"  총 용량 {totalBytes / 1_000_000.0:F1}MB (평균 {files.Average(f => f.Bytes) / 1000.0:F0}KB/장)", $"  {totalBytes / 1_000_000.0:F1} MB total (avg {files.Average(f => f.Bytes) / 1000.0:F0} KB each)"));
+        sb.AppendLine(L.T("[2/4] 첨부 복사", "[2/4] Copy attachments"));
+        sb.AppendLine(L.T($"  데이터 폴더 attachments 에 {copied}장 복사 (원본은 그대로)", $"  {copied} copied to the data folder's attachments (originals untouched)"));
+        sb.AppendLine(L.T("[3/4] 토큰 추정 (장당 ~1,100 tok 근사)", "[3/4] Token estimate (~1,100 tok per image)"));
+        sb.AppendLine(L.T($"  전체 예상 ~{estTokens:N0} tok · 큰 이미지(2MB 초과) {large.Count}장", $"  ~{estTokens:N0} tok expected · {large.Count} large images (> 2 MB)"));
         foreach (var f in large.Take(5)) sb.AppendLine($"   - {f.Name} ({f.Bytes / 1_000_000.0:F1}MB)");
-        sb.AppendLine("[4/4] 패턴 피드백");
+        sb.AppendLine(L.T("[4/4] 패턴 피드백", "[4/4] Feedback"));
         if (large.Count > 0)
-            sb.AppendLine($"  - 큰 이미지가 {large.Count}장({100.0 * large.Count / Math.Max(1, files.Count):F0}%)입니다. 보내기 전에 너비 1600px 이하로 줄이면 토큰·시간을 크게 아낍니다.");
+            sb.AppendLine(L.T($"  - 큰 이미지가 {large.Count}장({100.0 * large.Count / Math.Max(1, files.Count):F0}%)입니다. 너비 1600px 이하로 줄이면 토큰 · 시간을 아낍니다.", $"  - {large.Count} large images ({100.0 * large.Count / Math.Max(1, files.Count):F0}%). Downscale to 1600 px wide to save tokens and time."));
         if (estTokens > 20000)
-            sb.AppendLine($"  - 한 번에 {files.Count}장(~{estTokens:N0} tok)은 컨텍스트 부담이 큽니다. 대표 이미지 3~5장만 추려 보내는 패턴을 권장합니다.");
+            sb.AppendLine(L.T($"  - 한 번에 {files.Count}장(~{estTokens:N0} tok)은 컨텍스트 부담이 큽니다. 대표 이미지 3~5장만 추려 보내세요.", $"  - {files.Count} images at once (~{estTokens:N0} tok) is heavy. Send 3–5 representative images."));
         if (files.Count >= 10)
-            sb.AppendLine("  - 장수가 많으면 '전체를 한 번에 설명'보다 '이미지마다 한 줄 소견 → 표로 정리' 형식이 정확도가 높습니다.");
+            sb.AppendLine(L.T("  - 장수가 많으면 '이미지마다 한 줄 소견 → 표로 정리' 형식이 정확도가 높습니다.", "  - With many images, ask for 'one line per image → table' for better accuracy."));
         if (files.Any(f => f.Ext is ".png") && files.Count(f => f.Ext is ".png") >= files.Count / 2)
-            sb.AppendLine("  - PNG(스크린샷) 비중이 높습니다. 글자 판독이 목적이면 원본, 장면 이해가 목적이면 JPG로 줄여도 됩니다.");
+            sb.AppendLine(L.T("  - PNG(스크린샷) 비중이 높습니다. 글자 판독이 목적이면 원본, 장면 이해가 목적이면 JPG 로 줄여도 됩니다.", "  - Mostly PNG screenshots. Keep originals for reading text; JPG is fine for scene understanding."));
         sb.AppendLine(calibSamples > 0
-            ? $"  - 현재 예측 보정 표본 {calibSamples}건, 평균 오차 ±{calibErrorPct:F0}% — 실제 전송 후 가져오기를 하면 이 수치가 개선됩니다."
-            : "  - 아직 예측-실측 표본이 없습니다. 이 배치를 실제로 보낸 뒤 [가져오기]를 하면 다음 예측부터 보정이 걸립니다.");
-        sb.AppendLine("  - 이미지 이해가 핵심이면 Gemini 4 / ChatGPT(GPT-6) / Claude 계열처럼 비전 강점 모델이 유리합니다 (모델 추천의 image 유형 참고).");
+            ? L.T($"  - 예측 보정 표본 {calibSamples}건, 평균 오차 ±{calibErrorPct:F0}% — 실제로 보낸 뒤 가져오면 보정이 늘어납니다.", $"  - {calibSamples} calibration samples, ±{calibErrorPct:F0}% error — import after sending to calibrate more.")
+            : L.T("  - 아직 예측-실측 표본이 없습니다. 실제로 보낸 뒤 [가져오기]를 하면 다음 예측부터 보정됩니다.", "  - No calibration samples yet. Send it, then [Import], and later predictions are calibrated."));
         return sb.ToString().TrimEnd();
     }
 
@@ -1058,47 +1058,49 @@ public static partial class Advisor
     {
         var week = all.Where(p => DateTime.TryParse(p.CreatedAt, out var d) && d >= now.AddDays(-7)).ToList();
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"📊 최근 7일 리포트 ({now.AddDays(-7):MM/dd} ~ {now:MM/dd})");
+        sb.AppendLine(L.T($"최근 7일 리포트 ({now.AddDays(-7):MM/dd} ~ {now:MM/dd})", $"Last 7 days ({now.AddDays(-7):MM/dd} – {now:MM/dd})"));
         if (week.Count == 0)
         {
             // 시각 정보 없는 출처(Cursor 등)가 많으면 전체 기준으로 대체
             week = all;
-            sb.AppendLine("(날짜가 있는 기록이 없어 전체 기간 기준으로 표시합니다)");
+            sb.AppendLine(L.T("(날짜가 있는 기록이 없어 전체 기간 기준으로 표시합니다)", "(no dated records in the last 7 days — showing all time)"));
         }
         long inTok = week.Sum(p => p.InTok), outTok = week.Sum(p => p.OutTok);
         double failRate = week.Count > 0 ? 100.0 * week.Count(p => p.Fail > 0) / week.Count : 0;
-        sb.AppendLine($"프롬프트 {week.Count:N0}건 · 입력 {inTok:N0} tok · 출력 {outTok:N0} tok · 실패신호 비율 {failRate:F0}%");
-        sb.AppendLine($"출처: {string.Join(", ", week.GroupBy(p => p.Source).OrderByDescending(g => g.Count()).Select(g => $"{g.Key} {g.Count()}"))}");
+        sb.AppendLine(L.T($"프롬프트 {week.Count:N0}건 · 입력 {inTok:N0} tok · 출력 {outTok:N0} tok · 정정 신호 비율 {failRate:F0}%",
+                          $"{week.Count:N0} prompts · in {inTok:N0} tok · out {outTok:N0} tok · {failRate:F0}% needed corrections"));
+        sb.AppendLine(L.T("출처: ", "Sources: ") + string.Join(", ", week.GroupBy(p => p.Source).OrderByDescending(g => g.Count()).Select(g => $"{g.First().DisplaySource} {g.Count()}")));
         sb.AppendLine();
-        sb.AppendLine("⛔ 토큰을 가장 많이 쓴 프롬프트 TOP 5 (줄일 여지)");
+        sb.AppendLine(L.T("토큰을 가장 많이 쓴 프롬프트 TOP 5 (줄일 여지)", "TOP 5 prompts by tokens (room to save)"));
         foreach (var p in week.OrderByDescending(p => p.TotalTok).Take(5))
-            sb.AppendLine($"- [{p.Source}] {p.Preview}  → {p.TotalTok:N0} tok, 턴 {p.SegTurns}, 실패 {p.Fail}");
+            sb.AppendLine(L.T($"- [{p.DisplaySource}] {p.Preview}  → {p.TotalTok:N0} tok, 턴 {p.SegTurns}, 정정 {p.Fail}", $"- [{p.DisplaySource}] {p.Preview}  → {p.TotalTok:N0} tok, {p.SegTurns} turns, {p.Fail} corrections"));
         sb.AppendLine();
-        sb.AppendLine("✨ 가장 잘 먹힌 프롬프트 TOP 3 (이렇게 쓰세요)");
-        foreach (var p in week.Where(p => p.EffectiveLabel.Contains("최적")).OrderByDescending(p => p.Score).Take(3))
-            sb.AppendLine($"- [{p.Source}] {p.Preview}");
+        sb.AppendLine(L.T("가장 잘 먹힌 프롬프트 TOP 3 (이렇게 쓰세요)", "TOP 3 prompts that worked best (write like this)"));
+        foreach (var p in week.Where(p => p.IsGood).OrderByDescending(p => p.Score).Take(3))
+            sb.AppendLine($"- [{p.DisplaySource}] {p.Preview}");
         sb.AppendLine();
         var worst = week.Where(p => p.Fail > 0).ToList();
         sb.AppendLine(failRate >= 20
-            ? $"💡 조언: 실패신호 비율이 {failRate:F0}%로 높습니다. 보내기 전에 파일 경로·출력 형식을 한 줄씩만 더 적어도 정정 턴이 크게 줍니다."
-            : "💡 조언: 실패신호 비율이 안정적입니다. 최악 TOP 5의 공통점(긴 붙여넣기 등)만 가끔 점검하세요.");
+            ? L.T($"조언: 정정 신호 비율이 {failRate:F0}%로 높습니다. 보내기 전에 파일 경로 · 출력 형식(장비 요청이면 장비 · 버전 · 로그 · 재현 조건 · 기대 결과)을 한 줄씩만 더 적어도 정정 턴이 줄어듭니다.",
+                  $"Tip: {failRate:F0}% of prompts needed corrections. Adding the file path and output format (and for equipment requests: target, version, log, repro, expected result) before sending reduces correction turns.")
+            : L.T("조언: 정정 신호 비율이 안정적입니다. TOP 5 의 공통점(긴 붙여넣기 등)만 가끔 점검하세요.", "Tip: corrections are stable. Check what the TOP 5 have in common (long pastes etc.) now and then."));
         if (worst.Count > 0)
-            sb.AppendLine($"   실패가 있었던 프롬프트 {worst.Count}건의 누적 토큰은 {worst.Sum(p => p.TotalTok):N0} tok 입니다.");
+            sb.AppendLine(L.T($"   정정이 있었던 프롬프트 {worst.Count}건의 누적 토큰은 {worst.Sum(p => p.TotalTok):N0} tok 입니다.", $"   {worst.Count} prompts with corrections used {worst.Sum(p => p.TotalTok):N0} tok in total."));
         return sb.ToString().TrimEnd();
     }
 
     /// <summary>점수 산출 근거를 사람이 읽을 문장으로 (이력 미리보기 표시용).</summary>
     public static string ScoreBreakdown(PromptRow r, double medianTotal)
     {
-        var parts = new List<string> { $"점수 {r.Score:F0}" };
-        if (r.Fail > 0) parts.Add($"실패신호 {r.Fail}회 (−{45 * r.Fail})");
-        if (medianTotal > 0 && r.TotalTok > medianTotal * 3) parts.Add($"토큰 과다 (중앙값의 {r.TotalTok / medianTotal:F1}배, −25)");
-        else if (medianTotal > 0 && r.TotalTok > medianTotal * 1.5) parts.Add("토큰 다소 많음 (−10)");
-        if (r.Source == "claude" && r.SegTurns > 0 && r.OutTok == 0) parts.Add("답 없이 종료 (−20)");
-        if (r.Text.Length < 15) parts.Add("초단문 (−10)");
-        if (r.Label != 0) parts.Add("수동 라벨 우선 적용");
-        else if (r.AutoLabel == "good") parts.Add("자동: 상위권");
-        else if (r.AutoLabel == "bad") parts.Add("자동: 하위권");
+        var parts = new List<string> { L.T($"점수 {r.Score:F0}", $"score {r.Score:F0}") };
+        if (r.Fail > 0) parts.Add(L.T($"실패신호 {r.Fail}회 (−{45 * r.Fail})", $"{r.Fail} correction signals (−{45 * r.Fail})"));
+        if (medianTotal > 0 && r.TotalTok > medianTotal * 3) parts.Add(L.T($"토큰 과다 (중앙값의 {r.TotalTok / medianTotal:F1}배, −25)", $"very many tokens ({r.TotalTok / medianTotal:F1}× median, −25)"));
+        else if (medianTotal > 0 && r.TotalTok > medianTotal * 1.5) parts.Add(L.T("토큰 다소 많음 (−10)", "many tokens (−10)"));
+        if (r.Source == "claude" && r.SegTurns > 0 && r.OutTok == 0) parts.Add(L.T("답 없이 종료 (−20)", "ended without an answer (−20)"));
+        if (r.Text.Length < 15) parts.Add(L.T("초단문 (−10)", "very short (−10)"));
+        if (r.Label != 0) parts.Add(L.T("수동 라벨 우선 적용", "manual label wins"));
+        else if (r.AutoLabel == "good") parts.Add(L.T("자동: 상위권", "auto: top"));
+        else if (r.AutoLabel == "bad") parts.Add(L.T("자동: 하위권", "auto: bottom"));
         return string.Join(" · ", parts);
     }
 
@@ -1115,7 +1117,7 @@ public static partial class Advisor
             double median = mine[mine.Count / 2];
             double next = Math.Clamp(m.OutputFactor * median, 0.4, 2.0);
             if (Math.Abs(next - m.OutputFactor) < 0.05) return m;
-            changes.Add($"{m.Name}: outputFactor {m.OutputFactor:F2} → {next:F2} (표본 {mine.Count}건)");
+            changes.Add($"{m.Name}: outputFactor {m.OutputFactor:F2} → {next:F2} (n={mine.Count})");
             return m with { OutputFactor = Math.Round(next, 2) };
         }).ToList();
         return (updated, changes);
@@ -1184,7 +1186,7 @@ public static partial class Advisor
         int total = all.Count;
         long inTok = all.Sum(p => p.InTok), outTok = all.Sum(p => p.OutTok);
         int failRows = all.Count(p => p.Fail > 0);
-        int good = all.Count(p => p.EffectiveLabel.Contains("최적")), bad = all.Count(p => p.EffectiveLabel.Contains("최악"));
+        int good = all.Count(p => p.IsGood), bad = all.Count(p => p.IsBad);
         var recent = all.Where(p => DateTime.TryParse(p.CreatedAt, out var d) && d >= now.AddDays(-7)).ToList();
         sb.AppendLine("## 핵심 지표");
         sb.AppendLine($"- 프롬프트 {total:N0}건 · 세션 {all.Select(p => p.Session).Distinct().Count():N0}개 · 누적 토큰 입력 {inTok:N0} / 출력 {outTok:N0}");
@@ -1217,8 +1219,8 @@ public static partial class Advisor
     public static List<(string File, string Content)> BuildKnowledgeCards(List<PromptRow> all, List<ModelInfo> models,
         List<(string model, long estOut, long actOut)> calibByModel, IReadOnlyList<string> favoriteModels, string selectedModel, DateTime now)
     {
-        var good = all.Where(p => p.EffectiveLabel.Contains("최적")).ToList();
-        var bad = all.Where(p => p.EffectiveLabel.Contains("최악")).ToList();
+        var good = all.Where(p => p.IsGood).ToList();
+        var bad = all.Where(p => p.IsBad).ToList();
         var failed = all.Where(p => p.Fail > 0).ToList();
 
         double Ratio(List<PromptRow> rows, Func<PromptRow, bool> f) => rows.Count == 0 ? 0 : Pct(rows.Count(f), rows.Count);

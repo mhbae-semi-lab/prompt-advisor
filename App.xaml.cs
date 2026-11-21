@@ -132,8 +132,12 @@ public partial class App : Application
         }
         if (e.Args.Contains("--update"))
         {
-            var r = await Updater.CheckAsync(apply: true, restartArgs: null);
-            File.WriteAllText(System.IO.Path.Combine(Store.DataDir, "update-result.txt"), r);
+            // 헤드리스 업데이트 검증: 적용 뒤 새 버전이 같은 데이터 폴더로 셀프테스트를 돌려 버전을 남긴다
+            var resultPath = System.IO.Path.Combine(Store.DataDir, "update-result.txt");
+            Directory.CreateDirectory(Store.DataDir);
+            var r = await Updater.CheckAsync(apply: true, restartArgs: new[] { "--selftest", "--data", Store.DataDir },
+                beforeApply: msg => File.WriteAllText(resultPath, msg));
+            File.WriteAllText(resultPath, r);
             Shutdown();
             return;
         }

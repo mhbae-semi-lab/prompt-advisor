@@ -82,7 +82,7 @@
                             <StackPanel x:Name="ChatPanel"/>
                         </ScrollViewer>
                         <Grid Grid.Row="2" Margin="0,6,0,0">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="프로젝트" VerticalAlignment="Center" FontWeight="SemiBold"/>
                             <ComboBox x:Name="ProjectSelectCombo" Grid.Column="1" Margin="8,0,0,0" SelectionChanged="OnProjectSelectChanged"
                                       AutomationProperties.Name="프로젝트"
@@ -93,7 +93,7 @@
                                     ToolTip="직전 대화 이어받기 맥락을 초기화하고 새 작업 목표로 시작"/>
                         </Grid>
                         <Grid Grid.Row="3" Margin="0,5,0,0">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="템플릿" VerticalAlignment="Center" FontWeight="SemiBold"/>
                             <ComboBox x:Name="TemplateCombo" Grid.Column="1" Margin="8,0,0,0" DisplayMemberPath="Preview"
                                       AutomationProperties.Name="템플릿" ToolTip="이력에서 즐겨찾기로 표시한 프롬프트가 여기 뜹니다"/>
@@ -101,7 +101,7 @@
                             <Button Content="버전" Tag="&#xE81C;" ContentTemplate="{StaticResource IconText}" Padding="10,4" Grid.Column="3" Margin="6,0,0,0" Click="OnShowTemplateVersions" ToolTip="이 템플릿의 버전 기록 보기 (불러와 고쳐 쓴 편집본이 쌓입니다)"/>
                         </Grid>
                         <Grid Grid.Row="4" Margin="0,5,0,0">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="대상 모델" VerticalAlignment="Center" FontWeight="SemiBold"/>
                             <ComboBox x:Name="ModelSelectCombo" Grid.Column="1" Margin="8,0,0,0" SelectionChanged="OnModelSelectChanged"
                                       AutomationProperties.Name="대상 모델"
