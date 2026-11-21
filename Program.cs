@@ -5,7 +5,8 @@ namespace PromptAdvisor;
 /// <summary>
 /// 진입점. Velopack 설치·업데이트 훅이 WPF 보다 먼저 돌아야 해서 Main 을 직접 둔다.
 /// 명령줄: --data &lt;폴더&gt; (데이터 폴더 지정), --demo (합성 예시 DB), --lang ko|en,
-///         --selftest, --mcp, --import, --ollama-test, --export-knowledge, --update
+///         --selftest, --mcp, --import, --ollama-test, --export-knowledge, --update,
+///         --shots [폴더], --shadow-eval (둘 다 합성 예시 DB 만)
 /// </summary>
 public static class Program
 {
@@ -23,7 +24,7 @@ public static class Program
         var data = Arg("--data")
                    ?? (args.Contains("--selftest") ? Path.Combine(Path.GetTempPath(), $"prompt-advisor-selftest-{Environment.ProcessId}") : null);
         if (data != null) Store.DataDirOverride = Path.GetFullPath(data);
-        if (args.Contains("--demo") || args.Contains("--shots"))
+        if (args.Contains("--demo") || args.Contains("--shots") || args.Contains("--shadow-eval"))
         {
             App.DemoMode = true;
             Store.DataDirOverride = Path.Combine(Store.DataDir, "demo");

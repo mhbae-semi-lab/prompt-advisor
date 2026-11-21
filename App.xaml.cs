@@ -223,5 +223,11 @@ public partial class App : Application
             await win.CaptureShotsAsync(System.IO.Path.GetFullPath(dir));
             Shutdown();
         }
+        else if (e.Args.Contains("--shadow-eval"))
+        {
+            // 실제 로컬 LLM 으로 예시 10건의 Shadow 를 재서 데이터 폴더에 남긴다 (합성 예시 DB 만)
+            await win.RunShadowEvalAsync(System.IO.Path.Combine(Store.DataDir, "shadow-eval.txt"));
+            Shutdown();
+        }
     }
 }

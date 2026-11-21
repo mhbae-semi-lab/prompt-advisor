@@ -50,6 +50,13 @@ public static class SelfTest
         Try("en-format-ok", () => !Advisor.Lint("Explain why the build fails, as a table with cause and fix columns").Any(l => l.Id == "no-format"));
         Try("en-classify-code", () => Advisor.Classify("the build fails with an exception in Loader.cs") == "code");
         Try("en-correction", () => Importers.IsCorrection("No, that's wrong, I meant the X axis"));
+        Try("en-shadow-request", () =>
+        {
+            // 영어 요청이면 LLM 요청문에 한글 라벨이 없어야 답도 영어로 나온다
+            var (sys, user) = Advisor.ShadowRequest("servo alarm keeps coming back", false, "m", "t", "code", null, new[] { "vague" }, new[] { "no log" });
+            var (_, koUser) = Advisor.ShadowRequest("서보 알람", true, "m", "t", "코드", null, Array.Empty<string>(), Array.Empty<string>());
+            return !Advisor.IsKorean(sys + user) && user.Contains("[Original prompt]") && koUser.Contains("[원본 프롬프트]");
+        });
 
         // ---- 장비 SW 린트 (차별점 2) ----
         Try("eq-detect-ko", () => Equipment.IsEquipmentRequest("로더 화면 알람 뜨는 거 고쳐줘"));

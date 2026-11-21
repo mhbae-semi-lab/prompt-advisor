@@ -84,6 +84,7 @@ PromptAdvisor.exe --selftest [--data <폴더>]   # 셀프테스트, 결과: <데
 PromptAdvisor.exe --demo                       # 합성 예시 DB 로 실행
 PromptAdvisor.exe --shots <폴더> [--lang en]    # 예시 DB 로 화면 촬영 (매뉴얼용)
 PromptAdvisor.exe --measure --demo             # 측정 요약 (규칙별 학습 수치 · 개선 추적 · Shadow · 보정)
+PromptAdvisor.exe --shadow-eval                # 예시 10건 로컬 LLM Shadow 실측 → <데이터 폴더>\demo\shadow-eval.txt
 PromptAdvisor.exe --mcp                        # MCP 서버 (stdio)
 ```
 

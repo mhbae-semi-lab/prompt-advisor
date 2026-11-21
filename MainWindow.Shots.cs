@@ -132,4 +132,32 @@ public partial class MainWindow
 
         File.WriteAllText(Path.Combine(dir, (L.En ? "en_" : "") + "shots-done.txt"), DateTime.Now.ToString("s"));
     }
+
+    /// <summary>`--shadow-eval`: 예시 10건을 화면과 같은 경로(RewriteCurrentAsync)로 돌려 실제 LLM Shadow 기록만 모아 요약한다.</summary>
+    public async Task RunShadowEvalAsync(string path)
+    {
+        if (!App.DemoMode) return;
+        var lines = new List<string> { $"model={_ollama.GenModel} at={DateTime.Now:s}", "i\ton_topic\tjudge\trule_lints\tllm_lints\tsec\tprompt" };
+        var added = new List<Store.ShadowRow>();
+        int i = 0;
+        foreach (var p in SampleData.ExampleSet)
+        {
+            int before = _store.ShadowRows().Count;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            InputBox.Text = p;
+            await RewriteCurrentAsync();
+            var rows = _store.ShadowRows();
+            string first = p.Split('\n')[0];
+            if (rows.Count > before)
+            {
+                var r = rows[0];
+                added.Add(r);
+                lines.Add($"{++i}\t{r.OnTopic}\t{r.Judge}\t{r.RuleLints}\t{r.LlmLints}\t{sw.Elapsed.TotalSeconds:F0}\t{(first.Length > 40 ? first[..40] : first)}");
+            }
+            else lines.Add($"{++i}\t-\t-\t-\t-\t{sw.Elapsed.TotalSeconds:F0}\t(no shadow) {first}");
+        }
+        var s = Verification.Shadow(added);
+        lines.Add($"n={s.N} on_topic={s.OnTopicRate:F2} avg_judge={s.AvgJudge:F1} llm_not_worse={s.LlmNotWorse} can_switch={s.CanSwitch} reason={s.Reason}");
+        File.WriteAllText(path, string.Join("\n", lines));
+    }
 }

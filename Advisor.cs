@@ -830,6 +830,25 @@ public static partial class Advisor
         return anchors.Any(a => generated.Contains(a));
     }
 
+    /// <summary>LLM 개선안(Shadow) 요청문. 지시문 · 라벨을 원본 언어에 맞춘다 (영어 요청에 한글 라벨을 섞으면 답이 한국어로 나온다).</summary>
+    public static (string System, string User) ShadowRequest(string masked, bool ko, string model, string tool, string task,
+        WorkContext? ctx, IEnumerable<string> lintRules, IReadOnlyCollection<string> eqMissing)
+    {
+        string T(string k, string e) => ko ? k : e;
+        string system = ko
+            ? "너는 소프트웨어 엔지니어링 프롬프트 개선 전문가다. 제공된 [프로젝트 맥락], [작업 목적], [대상 파일]을 반영해 원본 프롬프트를 구체적이고 명확하게 구조화한다. 원본의 의도와 대상을 절대 바꾸지 말고, 모르는 장비 정보는 지어내지 말고 '(채울 칸)'으로 남긴다. 개선 프롬프트 본문만 출력한다."
+            : "You improve software-engineering prompts. Use the given [Project], [Goal] and [Target files] to make the original prompt specific and structured. Never change its intent or target; never invent equipment details — leave them as '(fill in)'. Output only the improved prompt, in English.";
+        string ctxText = ctx == null ? ""
+            : $"{T("[프로젝트 맥락]", "[Project]")} {ctx.ProjectName}" + (string.IsNullOrWhiteSpace(ctx.ProjectSummary) ? "" : $" — {ctx.ProjectSummary}")
+            + (string.IsNullOrWhiteSpace(ctx.SessionGoal) ? "" : $"\n{T("[작업 목적]", "[Goal]")} {MaskSensitive(ctx.SessionGoal)}")
+            + (ctx.SelectedFiles.Count > 0 ? $"\n{T("[대상 파일]", "[Target files]")} {string.Join(", ", ctx.SelectedFiles)}" : "") + "\n";
+        string user = $"{T("[답할 AI 모델]", "[AI model that will answer]")} {model} ({tool})\n{T("[작업 유형]", "[Task type]")} {task}\n{ctxText}"
+            + $"{T("[감지된 낭비 요소]", "[Detected issues]")} {string.Join("; ", lintRules)}\n"
+            + (eqMissing.Count > 0 ? $"{T("[빠진 장비 정보]", "[Missing equipment info]")} {string.Join(", ", eqMissing)}\n" : "")
+            + $"{T("[원본 프롬프트]", "[Original prompt]")}\n{masked}\n\n{T("위 원본 프롬프트를 개선해라.", "Improve the original prompt above.")}";
+        return (system, user);
+    }
+
     // ---------- 규칙 기반 개선 프롬프트 (Ollama 없어도 동작 + 프로젝트/세션 맥락 반영) ----------
     /// <summary>프롬프트가 한국어인지 (한글 비율 20% 이상). 개선안 · LLM 지시문을 프롬프트 언어에 맞춘다.</summary>
     public static bool IsKorean(string text)

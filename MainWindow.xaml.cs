@@ -1017,17 +1017,8 @@ public partial class MainWindow : Window
             bool ko = Advisor.IsKorean(_lastPrompt);
             var ctx = _last.Context;
             string masked = Advisor.MaskSensitive(_lastPrompt);
-            string ctxText = ctx == null ? ""
-                : $"[프로젝트 맥락] {ctx.ProjectName}" + (string.IsNullOrWhiteSpace(ctx.ProjectSummary) ? "" : $" — {ctx.ProjectSummary}")
-                + (string.IsNullOrWhiteSpace(ctx.SessionGoal) ? "" : $"\n[작업 목적] {Advisor.MaskSensitive(ctx.SessionGoal)}")
-                + (ctx.SelectedFiles.Count > 0 ? $"\n[대상 파일] {string.Join(", ", ctx.SelectedFiles)}" : "") + "\n";
             var eqMissing = _last.Lints.Where(l => l.Id.StartsWith("eq-")).Select(l => Advisor.RuleName(l.Id)).ToList();
-            string system = ko
-                ? "너는 소프트웨어 엔지니어링 프롬프트 개선 전문가다. 제공된 [프로젝트 맥락], [작업 목적], [대상 파일]을 반영해 원본 프롬프트를 구체적이고 명확하게 구조화한다. 원본의 의도와 대상을 절대 바꾸지 말고, 모르는 장비 정보는 지어내지 말고 '(채울 칸)'으로 남긴다. 개선 프롬프트 본문만 출력한다."
-                : "You improve software-engineering prompts. Use the given [Project], [Goal] and [Target files] to make the original prompt specific and structured. Never change its intent or target; never invent equipment details — leave them as '(fill in)'. Output only the improved prompt.";
-            string user = $"[대상 모델] {top.Name} ({top.Tool})\n[작업 유형] {Advisor.TaskLabel(_last.TaskType)}\n{ctxText}[감지된 낭비 요소] {string.Join("; ", _last.Lints.Select(l => l.Rule))}\n"
-                + (eqMissing.Count > 0 ? $"[빠진 장비 정보] {string.Join(", ", eqMissing)}\n" : "")
-                + $"[원본 프롬프트]\n{masked}\n\n위 원본 프롬프트를 개선해라.";
+            var (system, user) = Advisor.ShadowRequest(masked, ko, top.Name, top.Tool, Advisor.TaskLabel(_last.TaskType), ctx, _last.Lints.Select(l => l.Rule), eqMissing);
             sentBox.Text = $"[system]\n{system}\n\n[user]\n{user}";
             if (!IsLocalUrl(_ollama.BaseUrl) && MessageBox.Show(
                     L.T($"Ollama 주소가 이 PC 가 아닙니다 ({_ollama.BaseUrl}).\n아래 내용(마스킹 후)을 보낼까요?\n\n{(user.Length > 700 ? user[..700] + "…" : user)}",
