@@ -1,0 +1,36 @@
+name: Release
+
+# v* 태그를 푸시하면 셀프테스트 → self-contained publish → Velopack 패키지 → GitHub 릴리스 (초안)
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Self-test
+        shell: pwsh
+        run: |
+          dotnet build PromptAdvisor.csproj -c Release --nologo
+          $data = Join-Path $env:RUNNER_TEMP "pa-selftest"
+          $p = Start-Process -FilePath ".\bin\Release\net9.0-windows\PromptAdvisor.exe" -ArgumentList "--selftest","--data",$data -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "selftest failed" }
+      - name: Pack
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart('v')
+          dotnet tool install -g vpk --version 1.2.161
+          dotnet publish PromptAdvisor.csproj -c Release -r win-x64 --self-contained -p:Version=$ver -o publish
+          vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ github.token }} -o releases
+          vpk pack --packId prompt-advisor --packVersion $ver --packDir publish --mainExe PromptAdvisor.exe --packTitle "Prompt Advisor" --icon Assets\app.ico -o releases
+      - name: Upload
+        shell: pwsh
+        run: vpk upload github --repoUrl https://github.com/${{ github.repository }} --token ${{ github.token }} -o releases --releaseName "Prompt Advisor ${{ github.ref_name }}" --tag ${{ github.ref_name }}
