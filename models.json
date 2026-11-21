@@ -1,0 +1,170 @@
+[
+  {
+    "name": "Claude Opus 5.5 (Claude Code)",
+    "tool": "Claude Code / claude.ai",
+    "plan": "Claude Pro·Max",
+    "inputPerM": 15.0,
+    "outputPerM": 75.0,
+    "strengths": [
+      "code",
+      "refactor",
+      "analysis",
+      "document"
+    ],
+    "note": "AA 지능지수 58 (리더보드 최상위, 2026-10) — 다파일 리팩터·대규모 분석 1순위. 비싸므로 범위 좁혀 투입",
+    "outputFactor": 1.3
+  },
+  {
+    "name": "Claude Sonnet 5.5 (Claude Code / Cursor)",
+    "tool": "Claude Code / Cursor",
+    "plan": "Claude Pro·Max / Cursor Pro",
+    "inputPerM": 3.0,
+    "outputPerM": 15.0,
+    "strengths": [
+      "code",
+      "refactor",
+      "document",
+      "chat"
+    ],
+    "note": "AA 지능지수 56 — 일상 코딩 기본값. Opus 대비 대폭 저렴",
+    "outputFactor": 1.0
+  },
+  {
+    "name": "Claude Haiku 5.5",
+    "tool": "claude.ai / API",
+    "plan": "Claude Pro·Max",
+    "inputPerM": 0.8,
+    "outputPerM": 4.0,
+    "strengths": [
+      "summary",
+      "chat",
+      "image"
+    ],
+    "note": "AA 지능지수 43, 232 tok/s 고속·저렴 — 짧은 요약·분류·간단한 이미지 설명",
+    "outputFactor": 0.55
+  },
+  {
+    "name": "Cursor Auto / Sonnet",
+    "tool": "Cursor",
+    "plan": "Cursor Pro",
+    "inputPerM": 3.0,
+    "outputPerM": 15.0,
+    "strengths": [
+      "code",
+      "refactor"
+    ],
+    "note": "IDE 컨텍스트(열린 파일·진단)가 이미 붙는 소규모 수정에 유리",
+    "outputFactor": 1.0
+  },
+  {
+    "name": "Gemini 4 (Antigravity)",
+    "tool": "Antigravity / Gemini",
+    "plan": "Gemini",
+    "inputPerM": 1.25,
+    "outputPerM": 5.0,
+    "strengths": [
+      "analysis",
+      "document",
+      "code",
+      "image"
+    ],
+    "note": "AA 지능지수 53 — 긴 컨텍스트·이미지 포함 문서 분석. 한국어 장문",
+    "outputFactor": 1.05
+  },
+  {
+    "name": "Gemini 3.8 Flash",
+    "tool": "Gemini / Antigravity",
+    "plan": "Gemini",
+    "inputPerM": 0.075,
+    "outputPerM": 0.3,
+    "strengths": [
+      "summary",
+      "chat",
+      "image"
+    ],
+    "note": "AA 지능지수 41, 고속·초저렴 — 단순 변환·요약·이미지 1차 분류",
+    "outputFactor": 0.65
+  },
+  {
+    "name": "Genspark",
+    "tool": "Genspark",
+    "plan": "Genspark",
+    "inputPerM": 0.0,
+    "outputPerM": 0.0,
+    "strengths": [
+      "research",
+      "summary"
+    ],
+    "note": "웹 리서치·최신 정보 조사 전용 (가격은 크레딧제, 0=환산 제외)",
+    "outputFactor": 0.8
+  },
+  {
+    "name": "ChatGPT (GPT-6)",
+    "tool": "ChatGPT",
+    "plan": "ChatGPT Plus",
+    "inputPerM": 1.25,
+    "outputPerM": 10.0,
+    "strengths": [
+      "chat",
+      "document",
+      "summary",
+      "code",
+      "image"
+    ],
+    "note": "AA 지능지수 53 — 범용 대화·문서·이미지 다재다능",
+    "outputFactor": 0.95
+  },
+  {
+    "name": "Grok 4.7",
+    "tool": "xAI Grok",
+    "plan": "SuperGrok / X Premium",
+    "inputPerM": 2.0,
+    "outputPerM": 10.0,
+    "strengths": [
+      "research",
+      "chat",
+      "analysis"
+    ],
+    "note": "AA 지능지수 46 — 실시간 X/웹 맥락 리서치에 강함 (가격은 근사치)",
+    "outputFactor": 0.95
+  },
+  {
+    "name": "DeepSeek V4.1 Flash",
+    "tool": "DeepSeek",
+    "plan": "DeepSeek API",
+    "inputPerM": 0.14,
+    "outputPerM": 0.28,
+    "strengths": [
+      "summary",
+      "code",
+      "chat"
+    ],
+    "note": "AA 지능지수 45, 230 tok/s·초저렴 — 대량 요약·단순 코딩 보조 (가격은 근사치)",
+    "outputFactor": 0.7
+  },
+  {
+    "name": "Muse",
+    "tool": "VS Code / GitHub",
+    "plan": "Copilot Pro",
+    "inputPerM": 0.0,
+    "outputPerM": 0.0,
+    "strengths": [
+      "code"
+    ],
+    "note": "IDE 인라인 자동완성 특화. 긴 지시형 작업보다는 작은 수정·보일러플레이트에",
+    "outputFactor": 0.7
+  },
+  {
+    "name": "Perplexity",
+    "tool": "Perplexity",
+    "plan": "Perplexity Pro",
+    "inputPerM": 0.0,
+    "outputPerM": 0.0,
+    "strengths": [
+      "research",
+      "summary"
+    ],
+    "note": "출처 표기가 있는 웹 검색. Genspark와 용도 겹침 — 출처가 필요하면 이쪽",
+    "outputFactor": 0.8
+  }
+]

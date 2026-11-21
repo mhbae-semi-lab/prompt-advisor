@@ -1,0 +1,559 @@
+<Window x:Class="PromptAdvisor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Prompt Advisor — 프롬프트·모델 추천" Width="1380" Height="860" MinWidth="1020" MinHeight="620"
+        Icon="Assets/app.ico"
+        FontSize="13">
+    <Window.Resources>
+        <!-- 아이콘 + 글자 버튼: Tag 에 Segoe Fluent Icons 글리프, Content 에 글자 (화면 낭독기는 글자를 읽는다) -->
+        <DataTemplate x:Key="IconText">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ButtonBase}}"
+                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Margin="0,1,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+        <Style x:Key="Section" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,14,0,4"/>
+        </Style>
+        <Style x:Key="Hint" TargetType="TextBlock">
+            <Setter Property="Opacity" Value="0.78"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,2,0,4"/>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="2,0,0,4">
+            <Image Source="Assets/app.ico" Width="22" Height="22" VerticalAlignment="Center"/>
+            <TextBlock Text="Prompt Advisor" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" Margin="7,0,0,0"/>
+            <TextBlock x:Name="StatusText" Margin="14,0,0,0" VerticalAlignment="Center" Opacity="0.8" FontSize="12"
+                       AutomationProperties.LiveSetting="Polite"/>
+        </StackPanel>
+
+        <Border x:Name="DemoBanner" Grid.Row="1" Visibility="Collapsed" CornerRadius="6" Padding="10,6" Margin="0,0,0,5"
+                BorderThickness="1" BorderBrush="#D48B0F" Background="#22D48B0F">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="내 데이터로 돌아가기" Tag="&#xE72B;" ContentTemplate="{StaticResource IconText}" Padding="10,3" Click="OnLeaveDemo"/>
+                <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" FontWeight="SemiBold"
+                           Text="예시 데이터(합성) 보는 중 — 가상 프로젝트 3개 · 기록 약 100건. 여기서 바꾼 내용은 다음 예시 실행 때 초기화됩니다."/>
+            </DockPanel>
+        </Border>
+
+        <TabControl x:Name="MainTabs" Grid.Row="2">
+            <!-- ============ 분석 ============ -->
+            <TabItem Header="분석">
+                <Grid Margin="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="420"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 채팅 -->
+                    <Grid Grid.Column="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Border x:Name="OnboardingCard" Grid.Row="0" CornerRadius="6" Padding="10,7" Margin="0,0,0,5"
+                                BorderThickness="1" BorderBrush="#00A6C8" Background="#1400A6C8">
+                            <StackPanel>
+                                <TextBlock x:Name="OnboardTitle" Text="시작 체크리스트" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="OnboardSteps" Margin="0,4,0,0" TextWrapping="Wrap" FontSize="12.5"/>
+                            </StackPanel>
+                        </Border>
+                        <ScrollViewer x:Name="ChatScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False"
+                                      BorderBrush="{x:Static SystemColors.ActiveBorderBrush}" BorderThickness="1" Padding="6">
+                            <StackPanel x:Name="ChatPanel"/>
+                        </ScrollViewer>
+                        <Grid Grid.Row="2" Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="프로젝트" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <ComboBox x:Name="ProjectSelectCombo" Grid.Column="1" Margin="8,0,0,0" SelectionChanged="OnProjectSelectChanged"
+                                      AutomationProperties.Name="프로젝트"
+                                      ToolTip="현재 작업 중인 프로젝트를 선택하면 해당 폴더의 문서(AGENTS/CLAUDE.md)·파일 트리·직전 대화를 자동으로 맥락에 반영합니다"/>
+                            <Button Content="폴더" Tag="&#xE8B7;" ContentTemplate="{StaticResource IconText}" Padding="9,4" Grid.Column="2" Margin="6,0,0,0" Click="OnPickProjectDir"
+                                    ToolTip="작업 중인 프로젝트 폴더를 직접 지정"/>
+                            <Button Content="새 작업" Tag="&#xE710;" ContentTemplate="{StaticResource IconText}" Padding="9,4" Grid.Column="3" Margin="4,0,0,0" Click="OnResetSessionContext"
+                                    ToolTip="직전 대화 이어받기 맥락을 초기화하고 새 작업 목표로 시작"/>
+                        </Grid>
+                        <Grid Grid.Row="3" Margin="0,5,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="템플릿" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <ComboBox x:Name="TemplateCombo" Grid.Column="1" Margin="8,0,0,0" DisplayMemberPath="Preview"
+                                      AutomationProperties.Name="템플릿" ToolTip="이력에서 즐겨찾기로 표시한 프롬프트가 여기 뜹니다"/>
+                            <Button Content="불러오기" Tag="&#xE8E5;" ContentTemplate="{StaticResource IconText}" Padding="10,4" Grid.Column="2" Margin="6,0,0,0" Click="OnLoadTemplate" ToolTip="선택한 템플릿을 입력창에 넣기"/>
+                            <Button Content="버전" Tag="&#xE81C;" ContentTemplate="{StaticResource IconText}" Padding="10,4" Grid.Column="3" Margin="6,0,0,0" Click="OnShowTemplateVersions" ToolTip="이 템플릿의 버전 기록 보기 (불러와 고쳐 쓴 편집본이 쌓입니다)"/>
+                        </Grid>
+                        <Grid Grid.Row="4" Margin="0,5,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="대상 모델" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <ComboBox x:Name="ModelSelectCombo" Grid.Column="1" Margin="8,0,0,0" SelectionChanged="OnModelSelectChanged"
+                                      AutomationProperties.Name="대상 모델"
+                                      ToolTip="직접 지정하면 그 모델이 1순위 고정. '자동 추천'이면 작업 유형에 맞춰 추천합니다"/>
+                            <Button x:Name="FavModelBtn" Content="즐겨찾기" Tag="&#xE734;" ContentTemplate="{StaticResource IconText}" Padding="8,4" Grid.Column="2" Margin="6,0,0,0" Click="OnToggleFavModel"
+                                    ToolTip="현재 선택한 모델을 즐겨찾기로 (목록 맨 위에 표시)"/>
+                        </Grid>
+                        <Grid Grid.Row="5" Margin="0,5,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="이미지 첨부" Tag="&#xE723;" ContentTemplate="{StaticResource IconText}" Padding="10,4" Click="OnAttachImage"/>
+                                    <Button Content="폴더 일괄" Tag="&#xE8B7;" ContentTemplate="{StaticResource IconText}" Padding="10,4" Margin="5,0,0,0" Click="OnAttachFolder" ToolTip="폴더 안 모든 이미지를 한 번에 첨부하고 단계별 리포트를 만듭니다"/>
+                                </StackPanel>
+                                <TextBlock Text="끌어다 놓기 · Ctrl+V 가능" FontSize="11" Opacity="0.75" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <WrapPanel x:Name="AttachPanel" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </Grid>
+                        <TextBox x:Name="InputBox" Grid.Row="6" Margin="0,6,0,0" Height="96" FontSize="14" Padding="7"
+                                 AllowDrop="True" Drop="OnInputDrop" DragEnter="OnInputDragEnter"
+                                 TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                 AutomationProperties.Name="프롬프트 입력"
+                                 ToolTip="새 프롬프트를 붙여넣고 [분석]을 누르세요. Ctrl+Enter = 분석, 이미지 Ctrl+V 첨부 가능"/>
+                        <WrapPanel Grid.Row="7" Margin="0,6,0,0">
+                            <Button x:Name="AnalyzeBtn" Content="분석 (Ctrl+Enter)" Tag="&#xE721;" ContentTemplate="{StaticResource IconText}" Padding="11,5" Click="OnAnalyze" Background="#0067B8" Foreground="White" FontWeight="SemiBold"/>
+                            <Button x:Name="RewriteBtn" Content="개선 프롬프트 생성" Tag="&#xE82F;" ContentTemplate="{StaticResource IconText}" Padding="11,5" Margin="6,0,0,0" Click="OnRewrite" FontWeight="SemiBold"/>
+                            <Button Content="프롬프트만 복사" Tag="&#xE8C8;" ContentTemplate="{StaticResource IconText}" Padding="11,5" Margin="6,0,0,0" Click="OnCopyPromptOnlyInput" FontWeight="SemiBold" ToolTip="입력창의 프롬프트 본문만 복사 (분석·설명 없이 바로 붙여넣기용)"/>
+                            <Button Content="지우기" Tag="&#xE894;" ContentTemplate="{StaticResource IconText}" Padding="11,5" Margin="6,0,0,0" Click="OnClearChat"/>
+                        </WrapPanel>
+                    </Grid>
+
+                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Focusable="False"/>
+                    <!-- 분석 패널 -->
+                    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Margin="4,0,0,0">
+                        <StackPanel x:Name="AnalysisPanel">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="분석 결과" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Button Content="요약 복사" Tag="&#xE8C8;" ContentTemplate="{StaticResource IconText}" Padding="8,3" Margin="8,0,0,0" Click="OnCopyAnalysis" ToolTip="작업 유형·예상 토큰·추천 모델을 텍스트로 복사"/>
+                            </StackPanel>
+                            <WrapPanel x:Name="SummaryChips" Margin="0,7,0,0"/>
+                            <ProgressBar x:Name="AnalyzeProgress" IsIndeterminate="True" Height="4" Margin="0,6,0,0" Visibility="Collapsed"/>
+                            <TextBlock x:Name="AnalysisSummary" TextWrapping="Wrap" Margin="0,5,0,0" FontSize="13"
+                                       Text="왼쪽에 프롬프트를 입력하고 분석을 누르세요."/>
+
+                            <Border x:Name="ContextCard" CornerRadius="6" Padding="9,7" Margin="0,8,0,2"
+                                    BorderThickness="1" BorderBrush="#4000A6C8" Background="#0D00A6C8">
+                                <StackPanel>
+                                    <TextBlock Text="추론된 작업 맥락 (수정하면 개선안에 바로 반영)" FontSize="13.5" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="ContextWhyText" FontSize="11.5" Opacity="0.8" Margin="0,2,0,5" TextWrapping="Wrap"
+                                               Text="분석 시 프로젝트 문서·파일 트리와 직전 대화를 결합해 작업 목적과 대상 파일을 추론합니다."/>
+                                    <Grid Margin="0,2,0,4">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="작업 유형" FontSize="12" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="ContextTaskCombo" Grid.Column="1" FontSize="12" SelectionChanged="OnContextTaskChanged"
+                                                  AutomationProperties.Name="작업 유형"
+                                                  ToolTip="추론된 작업 유형이 실제 의도와 다르면 직접 변경하세요 — 모델 추천과 개선안에 즉시 반영됩니다">
+                                            <ComboBoxItem Content="코드 수정 (code)" Tag="code"/>
+                                            <ComboBoxItem Content="대규모 리팩터 (refactor)" Tag="refactor"/>
+                                            <ComboBoxItem Content="분석/진단 (analysis)" Tag="analysis"/>
+                                            <ComboBoxItem Content="문서 작성 (document)" Tag="document"/>
+                                            <ComboBoxItem Content="요약/짧은 문구 (summary)" Tag="summary"/>
+                                            <ComboBoxItem Content="웹 리서치 (research)" Tag="research"/>
+                                            <ComboBoxItem Content="이미지 (image)" Tag="image"/>
+                                            <ComboBoxItem Content="일반 대화 (chat)" Tag="chat"/>
+                                        </ComboBox>
+                                    </Grid>
+                                    <Grid Margin="0,2,0,4">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="작업 목적" FontSize="12" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="ContextGoalBox" Grid.Column="1" FontSize="12" Padding="4,2"
+                                                 TextChanged="OnContextGoalChanged" AutomationProperties.Name="작업 목적"
+                                                 ToolTip="현재 무엇을 위해 작업하는지 한 줄 목적입니다. 직접 수정하면 개선 프롬프트에 그대로 들어갑니다."/>
+                                    </Grid>
+                                    <TextBlock Text="대상 파일 후보 (체크된 파일이 개선 프롬프트에 포함됨)" FontSize="11.5" Opacity="0.85" Margin="0,2,0,3"/>
+                                    <WrapPanel x:Name="ContextFilesPanel" Margin="0,0,0,4"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBox x:Name="ContextAddFileBox" FontSize="11.5" Padding="4,2" AutomationProperties.Name="추가할 파일"
+                                                 ToolTip="추가할 파일/클래스 이름 입력 (예: Advisor.cs)"/>
+                                        <Button Content="파일 추가" Tag="&#xE710;" ContentTemplate="{StaticResource IconText}" FontSize="11.5" Padding="8,2" Grid.Column="1" Margin="4,0,0,0" Click="OnAddContextFile"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="낭비 요소 (규칙 린트)" Style="{StaticResource Section}" Margin="0,10,0,3"/>
+                            <StackPanel x:Name="LintPanel"/>
+                            <TextBlock x:Name="LintEmpty" Text="발견된 낭비 요소 없음" FontWeight="SemiBold"/>
+                            <StackPanel x:Name="LintGaugePanel" Margin="0,4,0,0"/>
+
+                            <TextBlock x:Name="BeforeAfterTitle" Text="개선 전 / 후" Style="{StaticResource Section}" Margin="0,10,0,3" Visibility="Collapsed"/>
+                            <StackPanel x:Name="BeforeAfterPanel"/>
+
+                            <TextBlock Text="예상 비용 (비슷한 과거 프롬프트 기준)" Style="{StaticResource Section}" Margin="0,10,0,3"/>
+                            <StackPanel x:Name="NeighborPanel"/>
+
+                            <TextBlock Text="모델 추천" Style="{StaticResource Section}" Margin="0,10,0,3"/>
+                            <StackPanel x:Name="ModelPanel"/>
+                            <StackPanel x:Name="ModelChartPanel" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="스킬 추천" Style="{StaticResource Section}" Margin="0,10,0,3"/>
+                            <StackPanel x:Name="SkillPanel"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- ============ 이력·통계 ============ -->
+            <TabItem Header="이력·통계">
+                <Grid Margin="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*" MinHeight="120"/>
+                        <RowDefinition Height="5"/>
+                        <RowDefinition Height="150"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="StatsText" Grid.Row="0" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                    <WrapPanel x:Name="StatsCards" Grid.Row="1" Margin="0,6,0,2"/>
+                    <WrapPanel Grid.Row="2" Margin="0,4,0,6">
+                        <ComboBox x:Name="FilterCombo" Width="150" SelectionChanged="OnFilterChanged" AutomationProperties.Name="필터">
+                            <ComboBoxItem Content="전체" Tag="all" IsSelected="True"/>
+                            <ComboBoxItem Content="최적 (수동/자동)" Tag="good"/>
+                            <ComboBoxItem Content="최악 (수동/자동)" Tag="bad"/>
+                            <ComboBoxItem Content="즐겨찾기" Tag="fav"/>
+                            <ComboBoxItem Content="재현 세트" Tag="repro"/>
+                            <ComboBoxItem Content="Claude Code" Tag="claude"/>
+                            <ComboBoxItem Content="Cursor" Tag="cursor"/>
+                            <ComboBoxItem Content="Antigravity" Tag="antigravity"/>
+                            <ComboBoxItem Content="claude.ai" Tag="claude.ai"/>
+                            <ComboBoxItem Content="CSV" Tag="csv"/>
+                            <ComboBoxItem Content="붙여넣기" Tag="paste"/>
+                        </ComboBox>
+                        <ComboBox x:Name="ProjectFilterCombo" Width="175" Margin="6,0,0,0" SelectionChanged="OnFilterChanged"
+                                  AutomationProperties.Name="프로젝트 필터" ToolTip="특정 프로젝트의 프롬프트 이력만 필터링"/>
+                        <TextBox x:Name="SearchBox" Width="200" Margin="6,0,0,0" TextChanged="OnSearchChanged"
+                                 AutomationProperties.Name="검색" ToolTip="프롬프트 내용으로 검색 (Ctrl+F)"/>
+                        <Button Content="라벨 재계산" Tag="&#xE72C;" ContentTemplate="{StaticResource IconText}" Padding="9,4" Margin="6,0,0,0" Click="OnRelabel"/>
+                        <Button Content="최적" Tag="&#xE8E1;" ContentTemplate="{StaticResource IconText}" Padding="9,4" Margin="6,0,0,0" Click="OnThumbUp" ToolTip="선택한 행을 최적으로 표시"/>
+                        <Button Content="최악" Tag="&#xE8E0;" ContentTemplate="{StaticResource IconText}" Padding="9,4" Margin="4,0,0,0" Click="OnThumbDown" ToolTip="선택한 행을 최악으로 표시"/>
+                        <Button Content="라벨 해제" Tag="&#xE711;" ContentTemplate="{StaticResource IconText}" Padding="9,4" Margin="4,0,0,0" Click="OnThumbClear"/>
+                        <Button Content="즐겨찾기" Tag="&#xE734;" ContentTemplate="{StaticResource IconText}" Padding="9,4" Margin="6,0,0,0" Click="OnToggleFavorite" ToolTip="템플릿으로 저장/해제 — 분석 탭 템플릿 목록에 뜹니다"/>
+                        <Button Content="재현 세트" Tag="&#xE7C1;" ContentTemplate="{StaticResource IconText}" Padding="9,4" Margin="4,0,0,0" Click="OnToggleRepro" ToolTip="선택한 사례를 재현 세트에 넣기/빼기 — 검증 탭에서 규칙을 바꿀 때 전/후 비교에 씁니다"/>
+                        <Button Content="분석으로" Tag="&#xE8A7;" ContentTemplate="{StaticResource IconText}" Padding="9,4" Margin="4,0,0,0" Click="OnSendSelectedToAnalyze" ToolTip="선택한 프롬프트를 분석 탭 입력창으로 (더블클릭도 동일)"/>
+                        <Button Content="주간 리포트" Tag="&#xE9D2;" ContentTemplate="{StaticResource IconText}" Padding="9,4" Margin="4,0,0,0" Click="OnWeeklyReport" ToolTip="최근 7일 낭비 TOP 5와 조언을 분석 탭에 표시"/>
+                    </WrapPanel>
+                    <StackPanel Grid.Row="3" Margin="0,0,0,5">
+                        <TextBlock Text="출처별 누적 토큰" FontSize="12" FontWeight="SemiBold"/>
+                        <StackPanel x:Name="SourceChartPanel" Margin="0,3,0,0"/>
+                    </StackPanel>
+                    <DataGrid x:Name="HistoryGrid" Grid.Row="4" AutoGenerateColumns="False" IsReadOnly="True"
+                              SelectionMode="Single" RowHeight="22" FontSize="12.5" AutomationProperties.Name="프롬프트 이력"
+                              MouseDoubleClick="OnHistoryDoubleClick" SelectionChanged="OnHistorySelectionChanged">
+                        <DataGrid.Columns>
+                            <DataGridCheckBoxColumn Header="즐겨찾기" Binding="{Binding Favorite}" Width="58"/>
+                            <DataGridCheckBoxColumn Header="재현" Binding="{Binding Repro}" Width="42"/>
+                            <DataGridTextColumn Header="라벨" Binding="{Binding EffectiveLabel}" Width="88"/>
+                            <DataGridTextColumn Header="출처" Binding="{Binding DisplaySource}" Width="86"/>
+                            <DataGridTextColumn Header="프로젝트" Binding="{Binding DisplayProject}" Width="120"/>
+                            <DataGridTextColumn Header="시각" Binding="{Binding DisplayTime}" Width="86"/>
+                            <DataGridTextColumn Header="프롬프트 (클릭하면 아래에 전체 표시)" Binding="{Binding Preview}" Width="*"/>
+                            <DataGridTextColumn Header="입력tok" Binding="{Binding InTok, StringFormat=N0}" Width="72"/>
+                            <DataGridTextColumn Header="출력tok" Binding="{Binding OutTok, StringFormat=N0}" Width="72"/>
+                            <DataGridTextColumn Header="턴" Binding="{Binding SegTurns}" Width="40"/>
+                            <DataGridTextColumn Header="정정" Binding="{Binding Fail}" Width="44"/>
+                            <DataGridTextColumn Header="점수" Binding="{Binding Score, StringFormat=F0}" Width="48"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <GridSplitter Grid.Row="5" Height="5" HorizontalAlignment="Stretch" Focusable="False"/>
+                    <Grid Grid.Row="6">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <WrapPanel Grid.Row="0" Margin="0,2,0,3">
+                            <TextBlock Text="선택한 프롬프트 전체" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="PreviewMeta" Margin="10,0,0,0" Opacity="0.8" VerticalAlignment="Center"/>
+                            <Button x:Name="PreviewCopyBtn" Content="프롬프트만 복사" Tag="&#xE8C8;" ContentTemplate="{StaticResource IconText}" Padding="9,3" Margin="10,0,0,0" Click="OnCopySelected" ToolTip="아래 표시된 프롬프트 본문만 복사"/>
+                            <TextBlock x:Name="ScoreDetail" Margin="12,0,0,0" Opacity="0.85" VerticalAlignment="Center"/>
+                        </WrapPanel>
+                        <TextBox x:Name="PreviewBox" Grid.Row="1" IsReadOnly="True" TextWrapping="Wrap" AutomationProperties.Name="선택한 프롬프트"
+                                 VerticalScrollBarVisibility="Auto" FontSize="13"
+                                 Text="행을 클릭하면 전체 프롬프트가 여기에 표시되고, 복사해서 바로 다시 쓸 수 있습니다."/>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- ============ 검증 (재현 → 비교 → Shadow → 전환·롤백) ============ -->
+            <TabItem Header="검증">
+                <Grid Margin="4">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <TextBlock Style="{StaticResource Hint}" Text="규칙을 바꾸기 전에 같은 사례로 확인하고(재현 · 비교), 새 방법(LLM 개선안)은 옆에서만 돌려 본 뒤(Shadow), 기준을 넘으면 전환하고 언제든 되돌립니다(전환 · 롤백)."/>
+                    <TabControl x:Name="VerifyTabs" Grid.Row="1" Margin="0,4,0,0">
+                        <TabItem Header="1 재현">
+                            <Grid Margin="6">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <WrapPanel>
+                                    <ComboBox x:Name="ReproSourceCombo" Width="260" AutomationProperties.Name="재현 세트 선택">
+                                        <ComboBoxItem Content="예시 세트 (합성 10건)" Tag="example" IsSelected="True"/>
+                                        <ComboBoxItem Content="내 재현 세트 (이력에서 표시한 사례)" Tag="mine"/>
+                                    </ComboBox>
+                                    <Button Content="재현 실행" Tag="&#xE768;" ContentTemplate="{StaticResource IconText}" Padding="11,4" Margin="8,0,0,0" Click="OnRunRepro" FontWeight="SemiBold"/>
+                                    <Button Content="선택한 사례 분석" Tag="&#xE8A7;" ContentTemplate="{StaticResource IconText}" Padding="11,4" Margin="6,0,0,0" Click="OnReproToAnalyze"/>
+                                </WrapPanel>
+                                <TextBlock x:Name="ReproSummary" Grid.Row="1" Style="{StaticResource Hint}" Text="세트를 고르고 [재현 실행]을 누르면 지금 규칙으로 각 사례의 경고를 보여줍니다. 내 사례는 이력 탭의 [재현 세트] 버튼으로 넣습니다."/>
+                                <DataGrid x:Name="ReproGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" FontSize="12.5"
+                                          AutomationProperties.Name="재현 결과" MouseDoubleClick="OnReproToAnalyze">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="프롬프트" Binding="{Binding Preview}" Width="*"/>
+                                        <DataGridTextColumn Header="작업" Binding="{Binding Task}" Width="80"/>
+                                        <DataGridTextColumn Header="경고 수" Binding="{Binding RuleIds.Count}" Width="64"/>
+                                        <DataGridTextColumn Header="경고" Binding="{Binding RuleText}" Width="360"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="2 비교">
+                            <Grid Margin="6">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <WrapPanel>
+                                    <TextBlock Text="바꿀 설정" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <CheckBox x:Name="CandEquipment" Content="장비 SW 린트" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <CheckBox x:Name="CandFormat" Content="출력 형식 린트" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="범위 불명확 기준(자)" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="CandVague" Width="50" Margin="6,0,12,0" AutomationProperties.Name="범위 불명확 기준"/>
+                                    <TextBlock Text="대량 붙여넣기(자)" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="CandPaste" Width="64" Margin="6,0,12,0" AutomationProperties.Name="대량 붙여넣기 기준"/>
+                                    <TextBlock Text="로그 줄 수" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="CandLog" Width="40" Margin="6,0,12,0" AutomationProperties.Name="로그 줄 수 기준"/>
+                                    <Button Content="같은 세트로 비교" Tag="&#xE8F1;" ContentTemplate="{StaticResource IconText}" Padding="11,4" Click="OnCompare" FontWeight="SemiBold"/>
+                                </WrapPanel>
+                                <TextBlock x:Name="CompareSummary" Grid.Row="1" Style="{StaticResource Hint}" Text="재현 탭에서 고른 세트로 지금 설정과 바꿀 설정의 결과를 나란히 보여주고, 바뀐 항목만 강조합니다."/>
+                                <DataGrid x:Name="CompareGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" FontSize="12.5" AutomationProperties.Name="비교 결과">
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Changed}" Value="True">
+                                                    <Setter Property="Background" Value="#33E86B00"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="프롬프트" Binding="{Binding Preview}" Width="*"/>
+                                        <DataGridTextColumn Header="지금" Binding="{Binding Before}" Width="56"/>
+                                        <DataGridTextColumn Header="바꾼 뒤" Binding="{Binding After}" Width="64"/>
+                                        <DataGridTextColumn Header="바뀐 경고 (+생김 / −사라짐)" Binding="{Binding ChangeText}" Width="380"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="3 Shadow">
+                            <Grid Margin="6">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock Style="{StaticResource Hint}" Text="[개선 프롬프트 생성] 때 규칙안이 결정하고, 로컬 LLM 안은 옆 칸에만 보여줍니다. 두 안의 차이(주제 일치 · 심사 점수 · 남은 경고 수)가 여기에 쌓입니다."/>
+                                <TextBlock x:Name="ShadowSummaryText" Grid.Row="1" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,6"/>
+                                <DataGrid x:Name="ShadowGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" FontSize="12.5" AutomationProperties.Name="Shadow 기록">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="시각" Binding="{Binding CreatedAt}" Width="150"/>
+                                        <DataGridTextColumn Header="모델" Binding="{Binding Model}" Width="220"/>
+                                        <DataGridCheckBoxColumn Header="주제 일치" Binding="{Binding OnTopic}" Width="70"/>
+                                        <DataGridTextColumn Header="LLM 심사" Binding="{Binding Judge}" Width="72"/>
+                                        <DataGridTextColumn Header="규칙안 경고" Binding="{Binding RuleLints}" Width="82"/>
+                                        <DataGridTextColumn Header="LLM안 경고" Binding="{Binding LlmLints}" Width="82"/>
+                                        <DataGridTextColumn Header="채택" Binding="{Binding Decided}" Width="56"/>
+                                        <DataGridTextColumn Header="메모" Binding="{Binding Note}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="4 전환 · 롤백">
+                            <StackPanel Margin="6">
+                                <TextBlock Text="지금 적용 중인 설정" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="CurrentConfigText" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                                <WrapPanel>
+                                    <Button Content="비교한 설정으로 전환" Tag="&#xE8FB;" ContentTemplate="{StaticResource IconText}" Padding="11,4" Click="OnApplyCandidate"
+                                            ToolTip="[2 비교]에서 고른 설정을 적용합니다. 지금 설정은 이력에 보관됩니다."/>
+                                    <Button x:Name="LlmSwitchBtn" Content="LLM안 우선으로 전환" Tag="&#xE82F;" ContentTemplate="{StaticResource IconText}" Padding="11,4" Margin="6,0,0,0" Click="OnSwitchLlm"
+                                            ToolTip="Shadow 기록이 기준을 넘었을 때만 켜집니다"/>
+                                    <Button Content="이전 설정으로 되돌리기" Tag="&#xE7A7;" ContentTemplate="{StaticResource IconText}" Padding="11,4" Margin="6,0,0,0" Click="OnRollback"/>
+                                </WrapPanel>
+                                <TextBlock x:Name="SwitchStatusText" Style="{StaticResource Hint}" Margin="0,6,0,4"/>
+                                <TextBlock Text="변경 이력" FontWeight="SemiBold" Margin="0,10,0,3"/>
+                                <DataGrid x:Name="ConfigHistoryGrid" AutoGenerateColumns="False" IsReadOnly="True" FontSize="12.5" Height="260" AutomationProperties.Name="설정 변경 이력">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="시각" Binding="{Binding CreatedAt}" Width="150"/>
+                                        <DataGridTextColumn Header="메모" Binding="{Binding Note}" Width="220"/>
+                                        <DataGridTextColumn Header="설정" Binding="{Binding Summary}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </TabItem>
+                        <TabItem Header="개선 추적">
+                            <Grid Margin="6">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock Style="{StaticResource Hint}" Text="개선안의 [프롬프트만 복사]로 보낸 본문을 기록하고, 다음 가져오기 때 실제 기록과 이어 실제 턴 · 정정 수를 채웁니다. 같은 경고가 있던 기존 요청과 비교합니다."/>
+                                <TextBlock x:Name="RewriteSummaryText" Grid.Row="1" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,6"/>
+                                <DataGrid x:Name="RewriteGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" FontSize="12.5" AutomationProperties.Name="개선 추적">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="보낸 시각" Binding="{Binding When}" Width="96"/>
+                                        <DataGridTextColumn Header="원본" Binding="{Binding Original}" Width="*"/>
+                                        <DataGridTextColumn Header="방식" Binding="{Binding Kind}" Width="50"/>
+                                        <DataGridTextColumn Header="경고 전→후" Binding="{Binding Lints}" Width="84"/>
+                                        <DataGridTextColumn Header="실제 턴" Binding="{Binding Turns}" Width="60"/>
+                                        <DataGridTextColumn Header="실제 정정" Binding="{Binding Fail}" Width="70"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </TabItem>
+
+            <!-- ============ 가져오기·설정 ============ -->
+            <TabItem Header="가져오기·설정">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10" MaxWidth="940" HorizontalAlignment="Left">
+                        <TextBlock Text="데이터 가져오기 (이 PC 의 기록만 읽음, 네트워크 없음)" FontSize="16" FontWeight="SemiBold"/>
+                        <WrapPanel Margin="0,8,0,0">
+                            <Button Content="Claude Code 세션" Tag="&#xE8B7;" ContentTemplate="{StaticResource IconText}" Padding="12,7" Click="OnImportClaude"/>
+                            <Button Content="Cursor 대화" Tag="&#xE8B7;" ContentTemplate="{StaticResource IconText}" Padding="12,7" Margin="8,0,0,0" Click="OnImportCursor"/>
+                            <Button Content="Antigravity" Tag="&#xE8B7;" ContentTemplate="{StaticResource IconText}" Padding="12,7" Margin="8,0,0,0" Click="OnImportAntigravity"/>
+                            <Button Content="claude.ai 내보내기 zip" Tag="&#xE8E5;" ContentTemplate="{StaticResource IconText}" Padding="12,7" Margin="8,0,0,0" Click="OnImportZip"/>
+                            <Button Content="CSV 가져오기" Tag="&#xE8E5;" ContentTemplate="{StaticResource IconText}" Padding="12,7" Margin="8,0,0,0" Click="OnImportCsv"
+                                    ToolTip="머리줄: source,session,project,created_at,in_tok,out_tok,turns,fail,label,text (text 만 필수)"/>
+                        </WrapPanel>
+                        <TextBlock x:Name="ImportStatus" Margin="0,8,0,0" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+                        <CheckBox x:Name="AutoImportBox" Content="시작 시 자동으로 새 세션 가져오기 (Claude Code·Cursor, 중복은 자동 제외)" Margin="0,8,0,0"/>
+                        <WrapPanel Margin="0,8,0,0">
+                            <Button Content="예시 데이터로 둘러보기" Tag="&#xE768;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Click="OnOpenDemo"
+                                    ToolTip="합성 예시 DB(가상 프로젝트 3개, 약 100건)로 앱을 다시 엽니다. 내 데이터는 건드리지 않습니다."/>
+                            <Button Content="이전 버전 데이터 가져오기" Tag="&#xE8E5;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Margin="8,0,0,0" Click="OnImportLegacy"
+                                    ToolTip="예전 개인판(%LOCALAPPDATA%\PromptAdvisor\advisor.db)의 기록을 이 앱으로 합칩니다"/>
+                        </WrapPanel>
+
+                        <TextBlock Text="붙여넣기 (웹 기록 등)" Style="{StaticResource Section}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox x:Name="PasteSource" Width="160" AutomationProperties.Name="붙여넣기 출처">
+                                <ComboBoxItem Content="paste" IsSelected="True"/>
+                                <ComboBoxItem Content="genspark"/>
+                                <ComboBoxItem Content="claude.ai"/>
+                            </ComboBox>
+                            <Button Content="아래 텍스트를 프롬프트로 저장" Tag="&#xE74E;" ContentTemplate="{StaticResource IconText}" Padding="10,5" Margin="8,0,0,0" Click="OnPasteSave"/>
+                        </StackPanel>
+                        <TextBox x:Name="PasteBox" Height="80" Margin="0,6,0,0" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="붙여넣을 텍스트"/>
+
+                        <TextBlock Text="Ollama (로컬 LLM, 임베딩·개선안용 — 없어도 린트·통계·규칙 개선안은 동작)" Style="{StaticResource Section}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="130"/><ColumnDefinition Width="340"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                            <TextBlock Text="URL" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"/>
+                            <TextBox x:Name="OllamaUrlBox" Grid.Row="0" Grid.Column="1" Margin="0,3" AutomationProperties.Name="Ollama URL"/>
+                            <TextBlock Text="생성 모델" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center"/>
+                            <TextBox x:Name="GenModelBox" Grid.Row="1" Grid.Column="1" Margin="0,3" AutomationProperties.Name="생성 모델"/>
+                            <TextBlock Text="임베딩 모델" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"/>
+                            <TextBox x:Name="EmbedModelBox" Grid.Row="2" Grid.Column="1" Margin="0,3" AutomationProperties.Name="임베딩 모델"/>
+                            <Button Content="연결 확인" Tag="&#xE703;" ContentTemplate="{StaticResource IconText}" Padding="10,5" Grid.Row="0" Grid.Column="2" Margin="8,3,0,3" Click="OnCheckOllama"/>
+                            <Button x:Name="EmbedBtn" Content="미임베딩 프롬프트 임베딩" Tag="&#xE9D9;" ContentTemplate="{StaticResource IconText}" Padding="10,5" Grid.Row="1" Grid.Column="2" Margin="8,3,0,3" Click="OnEmbedAll"/>
+                            <TextBlock x:Name="OllamaStatus" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </Grid>
+                        <TextBlock Style="{StaticResource Hint}" Text="LLM 에 보내는 내용은 경로·메일·키·IP 등을 가린 뒤 보냅니다. URL 이 이 PC(localhost)가 아니면 보낼 때마다 확인합니다."/>
+
+                        <TextBlock Text="화면 · 추천" Style="{StaticResource Section}"/>
+                        <WrapPanel>
+                            <TextBlock Text="언어" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="LangCombo" Width="150" Margin="8,0,16,0" AutomationProperties.Name="언어">
+                                <ComboBoxItem Content="시스템 따름" Tag=""/>
+                                <ComboBoxItem Content="한국어" Tag="ko"/>
+                                <ComboBoxItem Content="English" Tag="en"/>
+                            </ComboBox>
+                            <TextBlock Text="테마" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="ThemeCombo" Width="150" Margin="8,0,16,0" SelectionChanged="OnThemeChanged" AutomationProperties.Name="테마">
+                                <ComboBoxItem Content="시스템 따름" Tag="System"/>
+                                <ComboBoxItem Content="라이트" Tag="Light"/>
+                                <ComboBoxItem Content="다크" Tag="Dark"/>
+                            </ComboBox>
+                            <TextBlock Text="추천 개수" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="RecommendCountCombo" Width="80" Margin="8,0,16,0" AutomationProperties.Name="추천 개수">
+                                <ComboBoxItem Content="1" Tag="1"/>
+                                <ComboBoxItem Content="2" Tag="2"/>
+                                <ComboBoxItem Content="3" Tag="3"/>
+                                <ComboBoxItem Content="4" Tag="4"/>
+                                <ComboBoxItem Content="5" Tag="5"/>
+                            </ComboBox>
+                            <Button Content="설정 저장" Tag="&#xE74E;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Click="OnSaveSettings" FontWeight="SemiBold"/>
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource Hint}" Text="언어는 저장 뒤 앱을 다시 열면 바뀝니다."/>
+
+                        <TextBlock Text="모델·가격표 (models.json — 직접 편집 가능)" Style="{StaticResource Section}"/>
+                        <WrapPanel>
+                            <Button Content="models.json 열기" Tag="&#xE8A5;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Click="OnOpenModels"/>
+                            <Button Content="리더보드 열기" Tag="&#xE774;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Margin="8,0,0,0" Click="OnOpenLeaderboard" ToolTip="Artificial Analysis 리더보드에서 최신 모델을 직접 확인 (브라우저)"/>
+                            <Button Content="모델표 기본값 초기화" Tag="&#xE777;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Margin="8,0,0,0" Click="OnResetModels" ToolTip="models.json을 번들 기본값으로 되돌리기 (자동 보정과 별개)"/>
+                            <TextBlock x:Name="ModelMetricStatus" Margin="12,0,0,0" VerticalAlignment="Center" Opacity="0.8"/>
+                        </WrapPanel>
+                        <TextBlock Text="모델별 예측 평가 (실측 표본 기준)" FontSize="13" FontWeight="SemiBold" Margin="0,10,0,3"/>
+                        <ListBox x:Name="ModelEvalList" Height="86" AutomationProperties.Name="모델별 예측 평가"/>
+
+                        <TextBlock Text="백업 · 복원" Style="{StaticResource Section}"/>
+                        <WrapPanel>
+                            <Button Content="DB 백업" Tag="&#xE74E;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Click="OnBackupDb" ToolTip="advisor.db를 날짜를 붙여 복사"/>
+                            <Button Content="DB 복원" Tag="&#xE777;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Margin="8,0,0,0" Click="OnRestoreDb" ToolTip="백업한 .db 파일로 되돌립니다 (지금 DB 는 먼저 백업)"/>
+                            <Button Content="CSV 내보내기" Tag="&#xE898;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Margin="8,0,0,0" Click="OnExportCsv" ToolTip="이력 탭의 지금 필터 결과를 CSV 로 (CSV 가져오기와 같은 형식)"/>
+                            <Button Content="설정 내보내기" Tag="&#xE898;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Margin="8,0,0,0" Click="OnExportSettings"/>
+                            <Button Content="설정 가져오기" Tag="&#xE8E5;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Margin="8,0,0,0" Click="OnImportSettings"/>
+                            <Button Content="데이터 폴더 열기" Tag="&#xE838;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Margin="8,0,0,0" Click="OnOpenDataDir"/>
+                        </WrapPanel>
+                        <TextBlock x:Name="SettingsStatus" Style="{StaticResource Hint}"/>
+                        <TextBlock Style="{StaticResource Hint}" Text="설정은 저장할 때마다 settings-backup.json 에 직전 값이 백업되고, 본 파일이 손상되면 백업으로 복원됩니다."/>
+
+                        <TextBlock Text="오류 기록 (이 PC 에만 저장, 외부 전송 없음)" Style="{StaticResource Section}"/>
+                        <WrapPanel>
+                            <TextBlock x:Name="ErrorCountText" VerticalAlignment="Center"/>
+                            <Button Content="새로고침" Tag="&#xE72C;" ContentTemplate="{StaticResource IconText}" Padding="10,4" Margin="10,0,0,0" Click="OnRefreshErrors"/>
+                            <Button Content="오류 기록 지우기" Tag="&#xE74D;" ContentTemplate="{StaticResource IconText}" Padding="10,4" Margin="6,0,0,0" Click="OnClearErrors"/>
+                            <Button Content="시스템 점검" Tag="&#xE9D9;" ContentTemplate="{StaticResource IconText}" Padding="10,4" Margin="6,0,0,0" Click="OnSystemCheck" ToolTip="DB·첨부·모델·오류 현황을 한 번에 점검"/>
+                        </WrapPanel>
+                        <ListBox x:Name="ErrorList" Height="96" Margin="0,6,0,0" AutomationProperties.Name="오류 기록"/>
+                        <TextBlock x:Name="SystemCheckText" Style="{StaticResource Hint}"/>
+
+                        <TextBlock Text="지식 · 맥락 내보내기 (에이전트 연동)" Style="{StaticResource Section}"/>
+                        <WrapPanel>
+                            <Button Content="지식 내보내기" Tag="&#xE898;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Click="OnExportKnowledge" ToolTip="docs/STATUS.md 현황 스냅샷과 docs/knowledge/*.md 지식 카드 4종을 지정한 저장소에 생성 — Cursor·Claude 가 세션 시작 시 읽는 맥락"/>
+                            <Button Content="대상 폴더 선택" Tag="&#xE8B7;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Margin="8,0,0,0" Click="OnPickKnowledgeDir"/>
+                            <TextBlock x:Name="KnowledgeDirText" Margin="12,0,0,0" VerticalAlignment="Center" Opacity="0.8"/>
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource Hint}" Text="DB 통계를 Markdown 으로 뽑습니다. 프롬프트 원문 · 프로젝트 이름은 넣지 않고 비율 · 구조 통계만 넣습니다."/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ============ 도움말 ============ -->
+            <TabItem Header="도움말">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10" MaxWidth="940" HorizontalAlignment="Left">
+                        <WrapPanel>
+                            <TextBlock x:Name="VersionText" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Button Content="업데이트 확인" Tag="&#xE895;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Margin="12,0,0,0" Click="OnCheckUpdate"/>
+                            <CheckBox x:Name="UpdateOnStartBox" Content="시작할 때 업데이트 확인" Margin="12,0,0,0" VerticalAlignment="Center" Click="OnUpdateOnStartChanged"/>
+                            <Button Content="처음 안내 다시 보기" Tag="&#xE897;" ContentTemplate="{StaticResource IconText}" Padding="12,5" Margin="12,0,0,0" Click="OnShowWelcome"/>
+                        </WrapPanel>
+                        <TextBlock x:Name="UpdateStatus" Style="{StaticResource Hint}" AutomationProperties.LiveSetting="Polite"/>
+                        <TextBlock x:Name="HelpText" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="20"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <StatusBar Grid.Row="3" Margin="0,4,0,0">
+            <StatusBarItem><TextBlock x:Name="BottomStatus" FontSize="12"/></StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <TextBlock FontSize="12" Opacity="0.8" Text="Ctrl+Shift+P 전역 호출 (트레이 상주) · Ctrl+Enter 분석 · Ctrl+1~5 탭 이동"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

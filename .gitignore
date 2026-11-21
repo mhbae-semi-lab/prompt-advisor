@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+publish/
+releases/
+*.db
+*.db-wal
+*.db-shm
+data/
+export/
+~$*
+# 지식 내보내기 결과는 개인 기록 통계라 이 저장소에 넣지 않는다
+docs/STATUS.md
+docs/knowledge/
+# 매뉴얼 빌드 중간물
+docs/manual/~$*
+__pycache__/

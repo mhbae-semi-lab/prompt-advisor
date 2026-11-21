@@ -1,0 +1,11 @@
+---
+description: Prompt Advisor 상시 맥락 — AGENTS.md 요약
+alwaysApply: true
+---
+
+# Prompt Advisor 작업 규칙 (요약)
+
+- 원본은 저장소 루트 `AGENTS.md`. 충돌하면 `AGENTS.md` 를 따른다.
+- WPF .NET 9 단일 프로젝트, 코드비하인드. 화면 문자열은 한/영 (`L.T`, `Loc.Strings.cs`).
+- 데이터는 `%LOCALAPPDATA%\prompt-advisor-data` (테스트는 `--data <임시폴더>`). 원문 · DB 커밋 금지.
+- 기능 변경 시 `SelfTest.cs` 항목 추가, `dotnet build -c Release` 경고/오류 0.
