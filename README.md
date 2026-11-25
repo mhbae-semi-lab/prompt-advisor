@@ -60,10 +60,32 @@ AI 코딩 도구(Claude Code · Cursor)에 보내기 **전에** 프롬프트를 
 ### Ollama (선택)
 
 ```powershell
-winget install Ollama.Ollama
-ollama pull exaone3.5:2.4b   # 개선안 생성 (VRAM 4GB 기준 기본값)
-ollama pull bge-m3           # 임베딩 (비슷한 과거 요청 찾기)
+winget install Ollama.Ollama   # 0.40.6 이상
+ollama pull bge-m3             # 임베딩 (비슷한 과거 요청 찾기)
 ```
+
+개선안 생성 기본 모델은 `bonsai-2.5:27b` 입니다 (PrismML Ternary Bonsai 2.5 27B, 2026-11-24, Apache 2.0).
+Ollama 라이브러리에는 아직 없어 GGUF 를 받아 직접 만듭니다.
+`ollama pull hf.co/prism-ml/Ternary-Bonsai-2.5-27B-GGUF:Q2_0` 는 PQ2_0 파일을 받아 일반 Ollama 가 읽지 못하니 쓰지 마세요.
+Ollama 공식 `bonsai-2:27b` 는 이전 세대(Bonsai 2)입니다.
+
+1. [Ternary-Bonsai-2.5-27B-Q2_0.gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2.5-27B-GGUF/resolve/main/Ternary-Bonsai-2.5-27B-Q2_0.gguf) (7.7GB) 를 받습니다.
+2. 같은 폴더에 `Modelfile` 을 만듭니다.
+
+   ```
+   FROM ./Ternary-Bonsai-2.5-27B-Q2_0.gguf
+   RENDERER qwen3.8
+   PARSER qwen3.5
+   PARAMETER temperature 1
+   PARAMETER top_k 20
+   PARAMETER top_p 0.95
+   PARAMETER min_p 0.05
+   ```
+
+3. 그 폴더에서 `ollama create bonsai-2.5:27b -f Modelfile`
+
+느린 모델입니다. RTX 3050 4GB · RAM 32GB 실측: 생성 약 1.8 토큰/초, 처음 불러오기 1~2분, 개선안 하나에 수 분.
+빠른 답이 필요하면 `ollama pull exaone3.5:2.4b` 후 **가져오기 · 설정** 탭의 생성 모델 칸을 바꾸세요.
 
 없으면 비슷한 요청 찾기는 단어 유사도로, 개선안은 규칙 기반으로 동작합니다.
 
@@ -148,7 +170,7 @@ Prompt Advisor is a Windows app that checks prompts **before** you send them to 
 It imports your local history (tokens, turns, correction signals), shows for each warning how much extra correction and turns your past requests with the same warning needed,
 lints semiconductor-equipment software requests (Korean and English) for missing target equipment, version, log excerpt, repro conditions and expected result,
 predicts output tokens with calibration, and builds a rule-based rewrite with a local-Ollama rewrite shown side by side as a shadow.
-Everything stays on your PC; the app works fully without Ollama. The UI is available in Korean and English (Settings → Language).
+Everything stays on your PC; the app works fully without Ollama. The default generation model is `bonsai-2.5:27b` (PrismML Ternary Bonsai 2.5 27B), built from its Q2_0 GGUF with `ollama create` — see the Ollama section; it is slow on a 4GB GPU (about 1.8 tokens/s). The UI is available in Korean and English (Settings → Language).
 Install from Releases (`prompt-advisor-win-Setup.exe`, unsigned — choose "More info → Run anyway" on SmartScreen).
 
 License: MIT

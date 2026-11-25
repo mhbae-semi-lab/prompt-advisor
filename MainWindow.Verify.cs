@@ -216,8 +216,8 @@ public partial class MainWindow
         {
             TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 10),
             Text = ollama ? L.T("Ollama: 연결됨 — 임베딩 · LLM 개선안을 쓸 수 있습니다.", "Ollama: connected — embeddings and LLM rewrites are available.")
-                          : L.T("Ollama: 없음 — 그래도 린트 · 통계 · 규칙 개선안은 모두 동작합니다. 쓰려면: winget install Ollama.Ollama → ollama pull exaone3.5:2.4b · ollama pull bge-m3",
-                                "Ollama: not found — lint, stats and rule-based rewrites all work without it. To add it: winget install Ollama.Ollama → ollama pull exaone3.5:2.4b · ollama pull bge-m3"),
+                          : L.T($"Ollama: 없음 — 그래도 린트 · 통계 · 규칙 개선안은 모두 동작합니다. 쓰려면: winget install Ollama.Ollama → {Ollama.InstallHint(Ollama.DefaultGenModel)} · ollama pull bge-m3",
+                                $"Ollama: not found — lint, stats and rule-based rewrites all work without it. To add it: winget install Ollama.Ollama → {Ollama.InstallHint(Ollama.DefaultGenModel)} · ollama pull bge-m3"),
         });
         var buttons = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right };
         Button B(string glyph, string text, Action act)

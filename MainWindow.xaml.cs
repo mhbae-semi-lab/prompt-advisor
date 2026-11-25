@@ -1005,8 +1005,8 @@ public partial class MainWindow : Window
             {
                 shadowHead.Text = L.T("LLM 안 (Shadow) — 없음", "LLM (shadow) — unavailable");
                 shadow.Text = online
-                    ? L.T($"생성 모델 {_ollama.GenModel} 이(가) 설치되지 않아 LLM 안을 만들지 않았습니다 (ollama pull {_ollama.GenModel}). 규칙안만으로 모든 기능이 동작합니다.",
-                          $"The generation model {_ollama.GenModel} is not installed, so no LLM version was made (ollama pull {_ollama.GenModel}). Everything works with the rule-based version.")
+                    ? L.T($"생성 모델 {_ollama.GenModel} 이(가) 설치되지 않아 LLM 안을 만들지 않았습니다 ({Ollama.InstallHint(_ollama.GenModel)}). 규칙안만으로 모든 기능이 동작합니다.",
+                          $"The generation model {_ollama.GenModel} is not installed, so no LLM version was made ({Ollama.InstallHint(_ollama.GenModel)}). Everything works with the rule-based version.")
                     : L.T("Ollama 가 꺼져 있어 LLM 안을 만들지 않았습니다. 규칙안만으로 모든 기능이 동작합니다.", "Ollama is off, so no LLM version was made. Everything works with the rule-based version.");
                 footer.Text = "";
                 AddStatus(L.T("규칙 개선안 완료 — [프롬프트만 복사]로 쓰세요", "Rule-based rewrite ready — use [Copy prompt only]"));

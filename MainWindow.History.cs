@@ -492,11 +492,11 @@ public partial class MainWindow
         var installed = ok ? await _ollama.InstalledModels() : new List<string>();
         var missing = new[] { _ollama.GenModel, _ollama.EmbedModel }.Where(m => !Ollama.Has(installed, m)).ToList();
         OllamaStatus.Text = ok && missing.Count > 0
-            ? L.T($"연결됨 · 모델 없음: {string.Join(", ", missing)} — 받기: {string.Join(" · ", missing.Select(m => "ollama pull " + m))}", $"Connected · missing models: {string.Join(", ", missing)} — get them: {string.Join(" · ", missing.Select(m => "ollama pull " + m))}")
+            ? L.T($"연결됨 · 모델 없음: {string.Join(", ", missing)} — 받기: {string.Join(" · ", missing.Select(Ollama.InstallHint))}", $"Connected · missing models: {string.Join(", ", missing)} — get them: {string.Join(" · ", missing.Select(Ollama.InstallHint))}")
             : ok
             ? L.T($"연결됨 (생성 {_ollama.GenModel}, 임베딩 {_ollama.EmbedModel}) · 미임베딩 {_store.CountUnembedded():N0}건", $"Connected (generate {_ollama.GenModel}, embed {_ollama.EmbedModel}) · {_store.CountUnembedded():N0} not embedded")
-            : L.T("Ollama 미연결 — 린트·통계·규칙 개선안은 그대로 동작합니다. 설치: winget install Ollama.Ollama 후 ollama pull exaone3.5:2.4b · ollama pull bge-m3",
-                  "Ollama not connected — lint, stats and rule-based rewrites still work. Install: winget install Ollama.Ollama, then ollama pull exaone3.5:2.4b · ollama pull bge-m3");
+            : L.T($"Ollama 미연결 — 린트·통계·규칙 개선안은 그대로 동작합니다. 설치: winget install Ollama.Ollama 후 {Ollama.InstallHint(_ollama.GenModel)} · ollama pull bge-m3",
+                  $"Ollama not connected — lint, stats and rule-based rewrites still work. Install: winget install Ollama.Ollama, then {Ollama.InstallHint(_ollama.GenModel)} · ollama pull bge-m3");
     }
 
     private async void OnCheckOllama(object sender, RoutedEventArgs e)

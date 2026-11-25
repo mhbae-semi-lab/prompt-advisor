@@ -9,7 +9,7 @@ public sealed class Settings
     public string Theme { get; set; } = "System"; // System | Light | Dark
     public string Language { get; set; } = "";     // "" = OS 언어 따름 | ko | en
     public string OllamaUrl { get; set; } = "http://localhost:11434";
-    public string GenModel { get; set; } = "exaone3.5:2.4b";
+    public string GenModel { get; set; } = Ollama.DefaultGenModel;
     public string EmbedModel { get; set; } = "bge-m3";
     public bool AutoImport { get; set; }
     public bool UpdateCheckOnStart { get; set; } = true;

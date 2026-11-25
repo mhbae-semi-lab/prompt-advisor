@@ -7,10 +7,19 @@ namespace PromptAdvisor;
 /// <summary>Ollama 로컬 HTTP 연동. 미설치/미실행이면 IsAvailable=false로 조용히 비활성화.</summary>
 public sealed class Ollama
 {
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(5) };
+    // 기본 생성 모델 bonsai-2.5:27b 는 RTX 3050 4GB 에서 생성 1.8 토큰/초, 처음 불러오기 1~2분이라 넉넉히 둔다
+    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(20) };
     public string BaseUrl { get; set; } = "http://localhost:11434";
-    public string GenModel { get; set; } = "exaone3.5:2.4b";
+    public string GenModel { get; set; } = DefaultGenModel;
     public string EmbedModel { get; set; } = "bge-m3";
+
+    /// <summary>PrismML Ternary Bonsai 2.5 27B. Ollama 라이브러리에 없어 GGUF + Modelfile 로 만든다 (README 의 Ollama 절).</summary>
+    public const string DefaultGenModel = "bonsai-2.5:27b";
+
+    /// <summary>모델을 설치하는 명령 안내. bonsai-2.5 는 pull 로 받을 수 없어 README 를 가리킨다.</summary>
+    public static string InstallHint(string model) => model.StartsWith("bonsai-2.5", StringComparison.OrdinalIgnoreCase)
+        ? L.T($"README 의 'Bonsai 2.5 만들기' 대로 ollama create {model}", $"ollama create {model} as in README 'Bonsai 2.5'")
+        : "ollama pull " + model;
 
     public async Task<bool> IsAvailable()
     {

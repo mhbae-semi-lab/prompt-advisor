@@ -11,7 +11,7 @@
     <!-- ThemeMode(.NET 9 실험 API) 경고 억제 -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <!-- Velopack 이 Main 보다 먼저 돌아야 하므로 Program.Main 을 직접 쓴다 -->
     <StartupObject>PromptAdvisor.Program</StartupObject>
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
